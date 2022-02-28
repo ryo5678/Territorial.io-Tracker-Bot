@@ -1,6 +1,7 @@
 # Territorial.io-Tracker-Bot
 Discord.py Bot for tracking Territorial.io stats
 
-Currently under construction. Link to add to discord will be made public in the future.
+Older version of the bot for public use.
 
-All database references and credentials will need to be replaced if you wish to use this bot.
+[Official invite of the latest version found here](https://discord.com/api/oauth2/authorize?client_id=844800624028549120&permissions=137707777088&scope=bot)
+
