@@ -9,7 +9,7 @@ Your username may be used and shared in leaderboards or when displaying your pro
 In supported channels, any user posting an image with the intent of win count tracking gives permission for the bot to temporarily download and store your image. 
 This image is deleted immediately upon your win count being updated or an error occuring.
 
-Information of users no longer in bot scope is removed after 30 days.
+Any user, no longer in a server with this bot, will have all their data removed from storage in 30 days time.
 
-Users may also use t!data to manually remove their data from storage.
+All users have access to the t!data command to immediately remove their data from storage. Additionaly, users may contact the creator Ryo5678#2011 with any concerns or requests.
 
