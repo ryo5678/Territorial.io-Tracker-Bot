@@ -1,6 +1,6 @@
 **Territorial.io Tracker Bot Privacy Policy**
 
-Upon using a command for this bot, you agree to the storage of your discord ID and username.
+Upon using a command for this bot, you agree to the storage of your Discord ID and username.
 
 Information of users no longer in bot scope is removed after 30 days.
 
