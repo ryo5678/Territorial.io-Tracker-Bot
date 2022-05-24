@@ -7,7 +7,7 @@ Your Discord ID is never shared and only used to reference your statistics profi
 Your username may be used and shared in leaderboards or when displaying your profile.
 
 In supported channels, any user posting an image with the intent of win count tracking gives permission for the bot to temporarily download and store your image. 
-This image is deleted immediately upon your win count being updated or an error occuring.
+This image is deleted immediately upon your win count being updated or an error occuring. To opt out of this data reading, type the t!disable command in any server with this bot.
 
 Any user, no longer in a server with this bot, will have all their data removed from storage in 30 days time.
 
