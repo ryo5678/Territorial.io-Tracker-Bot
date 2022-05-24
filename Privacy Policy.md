@@ -12,5 +12,6 @@ This image is deleted immediately upon your win count being updated or an error 
 Any user, no longer in a server with this bot, will have all their data removed from storage in 30 days time.
 
 All users have access to the t!data command to immediately remove their data from storage.
+
 Additionaly, users may contact the creator Ryo5678#2011 with any concerns or requests.
 
