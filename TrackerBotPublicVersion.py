@@ -1,19 +1,13 @@
-import discord
+import discord, random, math, asyncio, firebase_admin, requests, io, re, datetime, os, cv2, discord.utils, subprocess
 from discord.ext import commands
 from discord.ext.commands import bot
-import random
-import math
-import asyncio
-import firebase_admin
-import requests
 from firebase_admin import credentials
 from firebase_admin import db
-import re
 from discord import Embed, Emoji
 from discord.ext import tasks
 from discord.ext.tasks import loop
-import datetime
-from datetime import datetime
+from discord.utils import get
+from datetime import datetime, timedelta
 owner_id = 138752093308583936
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -23,37 +17,51 @@ from googleapiclient.errors import HttpError
 from google.oauth2 import service_account
 from PIL import Image, ImageOps
 from pytesseract import pytesseract
-import os
-import re
-import cv2
 import numpy as np
-import matplotlib.pyplot as plt
+from matplotlib import pyplot as plt, ticker as ticker, dates as mdates
 from discord.ext.commands import CommandNotFound, MissingPermissions, MessageNotFound, NotOwner, BotMissingPermissions, CommandOnCooldown
-path_to_tesseract = r"File path to tesseract exe"
+path_to_tesseract = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 intents = discord.Intents.default()
+intents.messages = True
 intents.members = True
 
 creds = service_account.Credentials.from_service_account_file(
-    'json for google sheets authorization credentials')
+    'google docs credentials .json file')
 
 
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
 # The ID and range of a sample spreadsheet.
-SPREADSHEET_ID = 'google sheet id'
-RANGE_NAME = 'column name'
+SPREADSHEET_ID = 'Google spreadsheet ID'
+RANGE_NAME = 'A2'
 
-bot = commands.Bot(command_prefix="t!", case_insensitive=True, activity=discord.Game(name="Work In Progress"), status=discord.Status.online,help_command=None)
+bot = commands.Bot(command_prefix="t!", case_insensitive=True, activity=discord.Game(name="t!help for commands"), status=discord.Status.online,help_command=None,intents=intents)
 
+
+# List of removeWins admins
+winAdmins = ((138752093308583936,"ELITE"),(524835935276498946,"ELITE"))
 	
-database_url = "Firebase realtime database url"
+database_url = "URL to database"
 
-cred = firebase_admin.credentials.Certificate('Firebase admin credentials json file')
+cred = firebase_admin.credentials.Certificate('Firebase credentials .json file')
 databaseApp = firebase_admin.initialize_app(cred, { 'databaseURL' : database_url})
 
-global message3
+#textfile = open('en-strings.txt', 'r')
+#english = textfile.read().splitlines()
+#textfile.close()
 
+# Strings are private to prevent copy cats
+textfile = open('en-strings.txt', 'r')
+language = textfile.read().splitlines()
+textfile.close()
+
+textfile = open('fr-strings.txt', 'r')
+french = textfile.read().splitlines()
+textfile.close()
+
+#global message3
+counter = 1
     
 #-------------------------------------------------------------------------------
 #------------------------------ ON READY EVENT ---------------------------------
@@ -62,122 +70,119 @@ global message3
 @bot.event
 async def on_ready():
 	print('We have logged in as {0.user}'.format(bot))
-	
-	clanRanker.start()
-	ref = db.reference('/imageChannels')
-	info = ref.get()
-	channels = list(info.items())
-	
-	ref2 = db.reference('/top50clans')
-	info2 = ref2.get()
-	clans = list(info2.items())
-	
-	# DELETE CHANNELS DOES NOT WORK, NEED TO FIX
-	
-	for i in range(len(channels)):
-			#print(int(channels[i][1]['channelID']))
+	global counter
+	#counter = counter + 1
+	# if counter == 1:
+	# 	clanRanker.start()
+	if counter == 1:
 		try:
-			channel = bot.get_channel(int(channels[i][1]['channelID']))
-			new_task = tasks.loop(seconds=5.0,count=None,reconnect=True)(imagelooper)
-			new_task.start(channel)
-		#await channel.send("Image Tracking Rebooted! You may now post again.")
+			clanRanker.start()
 		except Exception as e:
-			if isinstance(e, discord.ext.commands.BotMissingPermissions):
-				await ctx.send("The bot does not have access to use this command here.")
-				print("test")
-			else:
-				print(int(channels[i][1]['channelID']))
-				ref = db.reference('/imageChannels/{0}'.format(int(channels[i][1]['channelID'])))
-				ref.delete()
-				print(e)
-				print(channels[i][1]['channelID'] + " channel does not exist anymore")
-	#print("top50clans")
-	for i in range(len(clans)):
-		try:
-			#print((int(clans[i][0])))
-			channel2 = bot.get_channel(int(clans[i][0]))
-			message = await channel2.fetch_message(int(clans[i][1]['message']))
-			message2 = await channel2.fetch_message(int(clans[i][1]['message2']))
-			top50_task = tasks.loop(count=1,reconnect=True)(top50loop)
-			top50_task.start(message,message2,channel2)
-		except Exception as e:
-			if isinstance(e, discord.ext.commands.BotMissingPermissions):
-				await ctx.send("The bot does not have access to use this command here.")
-			else:
-				ref = db.reference('/top50clans/{0}'.format(channel2.id))
-				ref.delete()
-				try:
-					print(channel2)
-				except:
-					print(channel2.id)
-				await channel2.send("Original embed deleted, leaderboard will no longer function.")
-				print(clans[i][0] + "Channel id, message does not exist anymore in channel")
-# Plans for future updates
-# Make a search method to display other clans leaderboards.
-# Example !leaderboard cum   searches all discord databases for name attribute cum
+			print(".start() error")
+			if str(e) == "object Nonetype can't be used in 'await' expression":
+				print("found")
+			print(e)
+		ref = db.reference('/imageChannels')
+		info = ref.get()
+		channels = list(info.items())
+		
+		# Deleting this part at some point, it half works
+		for i in range(len(channels)):
+				#print(int(channels[i][1]['channelID']))
+			try:
+				channel = bot.get_channel(int(channels[i][1]['channelID']))
+				# Check if channel still exists, if not, delete from database
+				if channel == None:
+					ref = db.reference('/imageChannels/{0}/'.format(int(channels[i][0])))
+					ref.delete()
+				else:
+					new_task = tasks.loop(seconds=7.0,count=None,reconnect=True)(imagelooper)
+					new_task.start(channel)
+					testLine = "test"
+			#await channel.send("Image Tracking Rebooted! You may now post again.")
+			except Exception as e:
+				if isinstance(e, discord.ext.commands.BotMissingPermissions):
+					try:
+						await channel.send(language[0])
+						print("test")
+					except Exception as e:
+						print("Exception error in Exception of on_ready")
+						print(e)
+						if str(e) == "object Nonetype can't be used in 'await' expression":
+							print("found")
+	counter = 2
 
-@commands.is_owner()
+@bot.event
+async def on_resumed():
+	print('We have resumed as {0.user}'.format(bot))
+
+#-------------------------------------------------------------------------------
+#----------------------------------- LAG TEST ----------------------------------
+#-------------------------------------------------------------------------------
+		
 @bot.command(pass_context = True)
+@commands.is_owner()
+async def lag(ctx):
+	print("lag")
+	await asyncio.sleep(5)
+	print("lag")
+
+#-------------------------------------------------------------------------------
+#----------------------------- Spreadsheet Filler ------------------------------
+#-------------------------------------------------------------------------------
+
+@bot.command(pass_context = True)
+@commands.cooldown(1, 604800, commands.BucketType.user)
 async def joinEvent(ctx):
 	# Gather discord user and server information
 	user = ctx.message.author.id
 	guild = ctx.message.guild.id
-	guild = bot.get_guild(guild)
-	name = (await guild.fetch_member(user)).nick
-	
-	# Check if user has a discord nickname
-	if name == None:
-	
-		# Get discord default name instead of nickname
-		name2 = (await guild.fetch_member(user)).name
-		
-		# Log into the google sheet
-		service = build('sheets', 'v4', credentials=creds)
-		
-		# Set the entry value for sheet
-		values = [
-			[
-			name2
-			],
-		]
-		body = {
-			'values': values
-		}
-		
-		# Send the update to the live google sheet
-		result = service.spreadsheets().values().append(
-			spreadsheetId=SPREADSHEET_ID,range=RANGE_NAME,
-			valueInputOption="RAW",body=body).execute()
-		
-		# Provide feedback to user on success
-		await ctx.send("Thanks for joining {0}! If this name is not your territorial name, please change your discord nickname and let us know.".format(name2))
-		
-	# Continue using discord nickname if name != none
-	else:
-	
-		# Log into the google sheet
-		service = build('sheets', 'v4', credentials=creds)
-		
-		# Set the entry value for sheet
-		values = [
-			[
-			name
-			],
-		]
-		body = {
-			'values': values
-		}
-		# Send the update to the live google sheet
-		result = service.spreadsheets().values().append(
-			spreadsheetId=SPREADSHEET_ID,range=RANGE_NAME,
-			valueInputOption="RAW",body=body).execute()
+	channel = ctx.message.channel.id
+	if guild == 780723109128962070 and channel == 939841267213422672:	
+		name = '{0}#{1}'.format(ctx.message.author.name,ctx.message.author.discriminator)
+		#print("Before role = get")
+		try:
+			role = get(ctx.guild.roles, id=941970444653850654)
+			await ctx.author.add_roles(role)
+			#print("after bot.add")
+			# Log into the google sheet
+			service = build('sheets', 'v4', credentials=creds)
 			
-		# Provide feedback to user on success
-		await ctx.send("Thanks for joining {0}! If this name is not your territorial name, please change your discord nickname and let us know.".format(name))
+			# Set the entry value for sheet
+			values = [
+				[
+				name
+				],
+			]
+			body = {
+				'values': values
+			}
+			#print("after service = build")
+			# Send the update to the live google sheet
+			result = service.spreadsheets().values().append(
+				spreadsheetId=SPREADSHEET_ID,range=RANGE_NAME,
+				valueInputOption="RAW",body=body).execute()
+			#print("after result =")
+			# Provide feedback to user on success
+			await ctx.send(language[1].format(name))
+		except Exception as e:
+			print(e)
+	else:
+		try:
+			await ctx.send(language[2])
+			await joinEvent.reset_cooldown(ctx)
+		except Exception as e:
+			print("JoinEvent called in wrong server")
+			print(e)
 @joinEvent.error
 async def joinEvent_error(ctx, error):
 	if isinstance(error, discord.ext.commands.NotOwner):
-		await ctx.send("This command is restricted to Ryo5678 only.")
+		await ctx.send(language[3])
+	if isinstance(error, discord.ext.commands.CommandOnCooldown):
+		error = str(error)
+		error = error.split()
+		time = error[len(error) - 1]
+		await ctx.send(language[4].format(time))
 #-------------------------------------------------------------------------------
 #------------------------------ GET Admin Commands -----------------------------
 #-------------------------------------------------------------------------------	
@@ -185,51 +190,68 @@ async def joinEvent_error(ctx, error):
 @commands.has_permissions(administrator=True)
 @commands.cooldown(1, 600, commands.BucketType.user)
 async def ahelp(ctx):
-	sheet = discord.Embed(title="Admin Help", description="**Commands for admins**".format(ctx), color=0x0000FF)
-	sheet.add_field(name="t!setup", value="How to setup your server.\nUsage: t!setup", inline=False)
-	sheet.add_field(name="t!profile", value="Display a user profile.\nUsage: self/other\nSelf: t!profile\nOther: t!profile @user", inline=False)
-	sheet.add_field(name="t!leaderboard", value="Display the current clan wins leaderboard.\nUsage: t!leaderboard", inline=False)
-	sheet.add_field(name="t!soloboard", value="Display the current clan 1v1 score leaderboard.\nUsage: t!soloboard", inline=False)
-	sheet.add_field(name="t!setclan", value="Set a users clan name.\nUsage: t!setclan CUM", inline=False)
-	sheet.add_field(name="t!setSolo", value="Set a users 1v1 elo.\nUsage: t!setSolo elo", inline=False)
-	sheet.add_field(name="t!oneboard #", value="Display the current top # 1v1 players (Up to 50).\nUsage: t!oneboard 25", inline=False)
-	sheet.add_field(name="t!setWins", value="Set a users rated clan wins. \nTHIS IS A PLACEHOLDER, COMMAND DOES NOT WORK.\nUsage: t!setWins @user wins", inline=False)
-	sheet.add_field(name="t!top50", value="Display the current top 50 clans.\nUsage: t!top50", inline=False)
-	sheet.add_field(name="t!top100", value="Display the current top 100 clans.\nUsage: t!top100", inline=False)
-	sheet.add_field(name="t!top50clan", value="Display the current top 50 clans and update every 20 seconds. This command can only be used once! Choose the channel for it wisely.\nUsage: t!top50clan", inline=False)
-	sheet.add_field(name="t!updates", value="Set the channel for Bot announcements/updates to show in.\nThis command can only be used once!\nUsage:USE IN DESIRED CHANNEL t!updates", inline=False)
-	sheet.add_field(name="t!imagetrack", value="Set the channel for Bot image tracking to be in.\nThis command can only be used once!\nUsage:USE IN DESIRED CHANNEL t!imagetrack", inline=False)
+	sheet = discord.Embed(title=language[5], description=language[6], color=0x0000FF)
+	sheet.add_field(name=language[7], value=language[8] + '\n' + language[9], inline=False)
+	sheet.add_field(name=language[10], value=language[11] + '\n' + language[12], inline=False)
+	sheet.add_field(name=language[13], value=language[14] + '\n' + language[15], inline=False)
+	sheet.add_field(name=language[16], value=language[17] + '\n' + language[18], inline=False)
+	sheet.add_field(name=language[19], value=language[20] + '\n' + language[21], inline=False)
+	sheet.add_field(name=language[22], value=language[23] + '\n' + language[24], inline=False)
+	sheet.add_field(name=language[25], value=language[26] + '\n' + language[27], inline=False)
+	sheet.add_field(name=language[28], value=language[29] + '\n' + language[30] + '\n' + language[31], inline=False)
+	sheet.add_field(name=language[32], value=language[33] + '\n' + language[34], inline=False)
+	sheet.add_field(name=language[35], value=language[36] + '\n' + language[37], inline=False)
+	sheet.add_field(name=language[38], value=language[39] + '\n' + language[40] + '\n' + language[41], inline=False)
+	sheet.add_field(name=language[42], value=language[43] + '\n' + language[44] + '\n' + language[45], inline=False)
 	await ctx.send(embed=sheet)
 @ahelp.error
 async def ahelp_error(ctx, error):
 	if isinstance(error, discord.ext.commands.BotMissingPermissions):
-		await ctx.send("This server does not support this command.")
+		await ctx.send(language[0])
 	if isinstance(error, discord.ext.commands.MissingPermissions):
-		await ctx.send("You need to be an administrator to use this command.")
+		await ctx.send(language[46])
 	if isinstance(error, discord.ext.commands.CommandOnCooldown):
-		await ctx.send("You must wait 10 minutes from last command use.")
+		error = str(error)
+		error = error.split()
+		time = error[len(error) - 1]
+		await ctx.send(language[4].format(time))
 #-------------------------------------------------------------------------------
 #------------------------------ HELP Override -----------------------------
 #-------------------------------------------------------------------------------	
 @bot.command(pass_context = True)
 @commands.cooldown(1, 600, commands.BucketType.user)
 async def help(ctx):
-	sheet2 = discord.Embed(title="Help", description="**Commands for users**".format(ctx), color=0x0000FF)
-	sheet2.add_field(name="t!profile", value="Display a user profile.\nUsage: self/other\nSelf: t!profile\nOther: t!profile @user", inline=False)
-	sheet2.add_field(name="t!clan", value="Display a clans current score.\nUsage: t!clan CUM", inline=False)
-	sheet2.add_field(name="t!setclan", value="Set a users clan name.\nUsage: t!setclan CUM", inline=False)
-	sheet2.add_field(name="t!setSolo", value="Set a users 1v1 elo.\nUsage: t!setSolo elo", inline=False)
-	sheet2.add_field(name="Win Tracking", value="Find your server's picture channel. Post a screenshot of your latest clan win.\n The win must include [clan name] wins in the bottom corner. \n Image quality may affect results. Crop out everything but territorial if possible.", inline=False)
-	sheet2.add_field(name="t!top50", value="Display the current top 50 clans.\nUsage: t!top50", inline=False)
-	sheet2.add_field(name="t!top100", value="Display the current top 100 clans.\nUsage: t!top100", inline=False)
-	sheet2.add_field(name="t!oneboard #", value="Display the current top # 1v1 players (Up to 50).\nUsage: t!oneboard 25", inline=False)
+	sheet2 = discord.Embed(title=language[47], description=language[48], color=0x0000FF)
+	sheet2.add_field(name=language[49], value=language[50], inline=False)
+	sheet2.add_field(name=language[51], value=language[52], inline=False)
+	sheet2.add_field(name=language[53], value=language[54] + '\n' + language[55], inline=False)
+	sheet2.add_field(name=language[10], value=language[11] + '\n' + language[12], inline=False)
+	sheet2.add_field(name=language[56], value=language[57] + '\n' + language[58], inline=False)
+	sheet2.add_field(name=language[19], value=language[20] + '\n' + language[21], inline=False)
+	sheet2.add_field(name=language[22], value=language[23] + '\n' + language[24], inline=False)
+	sheet2.add_field(name=language[13], value=language[14] + '\n' + language[15], inline=False)
+	sheet2.add_field(name=language[59], value=language[60] + '\n' + language[61] + '\n' + language[62], inline=False)
+	sheet2.add_field(name=language[63], value=language[64] + '\n' + language[65], inline=False)
+	sheet2.add_field(name=language[66], value=language[67], inline=False)
+	sheet2.add_field(name=language[32], value=language[33], inline=False)
+	sheet2.add_field(name=language[35], value=language[36], inline=False)
+	sheet2.add_field(name=language[25], value=language[26] + '\n' + language[27], inline=False)
+	sheet2.add_field(name=language[68], value=language[69] + '\n' + language[70] + '\n' + language[71], inline=False)
+	sheet2.add_field(name=language[72], value=language[73] + '\n' + language[74], inline=False)
+	sheet2.add_field(name=language[75], value=language[76], inline=False)
+	sheet2.add_field(name=language[77], value=language[78], inline=False)
 	await ctx.send(embed=sheet2)
 @help.error
 async def help_error(ctx, error):
 	if isinstance(error, discord.ext.commands.BotMissingPermissions):
-		await ctx.send("This server does not support this command.")
+		await ctx.send(language[0])
 	if isinstance(error, discord.ext.commands.CommandOnCooldown):
-		await ctx.send("You must wait 10 minutes from last command use.")
+		error = str(error)
+		error = error.split()
+		time = error[len(error) - 1]
+		await ctx.send(language[4].format(time))
+	if isinstance(error, discord.ext.commands.MissingPermissions):
+		await ctx.send(language[46])
 #-------------------------------------------------------------------------------
 #------------------------------ SETUP Command ----------------------------------
 #-------------------------------------------------------------------------------
@@ -237,29 +259,30 @@ async def help_error(ctx, error):
 @commands.has_permissions(administrator=True)
 @commands.cooldown(1, 1800, commands.BucketType.user)
 async def setup(ctx):
-	await ctx.send("Welcome to Territorial Tracker setup! \nWarning! Setup is for discord users with the administrator role. \nThese commands will not work for normal users.")
+	await ctx.send(language[79] + '\n' + language[80] + '\n' + language[81])
 	await asyncio.sleep(5)
-	await ctx.send("---------------------------------------------\nThis bot uses image tracking to get information. \nFor example, if a user posts a picture of their win screen the bot will check it for a win statement. \nThe bot will then update the user profile with +1 win. \nThe bot currently clan game wins and eventually will for 1v1 scores and battle royal wins. ")
+	await ctx.send(language[82] + '\n' + language[83] + '\n' + language[84] + '\n' + language[85] + '\n' + language[86])
 	await asyncio.sleep(10)
-	await ctx.send("---------------------------------------------\nFor clan game wins, a user must have set their current clan. Users can do this with t!setclan NAME. \nClan wins will be tracked seperately depending on current set clan. \nYou may gain wins for any clan, but they will not be added together.")
+	await ctx.send(language[82] + '\n' + language[87] + '\n' + language[88] + '\n' + language[89])
 	await asyncio.sleep(15)
-	await ctx.send("---------------------------------------------\nTo get started, create a discord channel for posting images. \nYou can create a new one or use an existing one. \nMake sure the bot has view, send message, embed links, edit message, attach files, add reactions, and view message history permissions in the channel. \nOnce you have a channel, type t!imageTrack and the bot will confirm tracking started. \nNext a user can post an image and the bot will begin updating their profile.")
+	await ctx.send(language[82] + '\n' + language[90] + '\n' + language[91] + '\n' + language[92] + '\n' + language[93] + '\n' + language[94])
 	await asyncio.sleep(20)
-	await ctx.send("---------------------------------------------\nRepeat this process for bot updates or use an existing bot commands channel. The command to enable update/maintenance/shutdown notices is t!updates.")
+	await ctx.send(language[82] + '\n' + language[95] + '\n' + language[96])
 	await asyncio.sleep(10)
-	await ctx.send("---------------------------------------------\nRepeat this process for again for showing top 50 clans. t!top50clan can be used once to set the channel and display initial leaderboard. The bot will update it every 20 seconds.\nA non updating version can be used by anyone, t!top50 and t!top100.")
-	await asyncio.sleep(10)
-	await ctx.send("---------------------------------------------\nLeaderboards are a great feature with this bot. \nt!top50clan will display a updating leaderboard. \nThis means it will update every 30 seconds infinitely. \nAbuse/spam of this command will result in blacklisting your discord server. \nNormal users can use t!top50 which displays a static unchanging view of the current top 50 clans. \nMore versions of this are planned (top 25, top100 etc.)")
+	await ctx.send(language[82] + '\n' + language[97] + '\n' + language[98] + '\n' + language[99] + '\n' + language[100])
 	await asyncio.sleep(20)
-	await ctx.send("---------------------------------------------\nThere is a also a leaderboard for battle royal wins, 1v1 score, and clan wins. \nThese three leaderboards update every 15 minutes. \nt!soloboard will display the top 1v1 players using this bot. \nt!royalboard will do the same for battle royal wins. \n!leaderboard CLAN will show the top winners for the selected clan.")
+	await ctx.send(language[82] + '\n' + language[101] + '\n' + language[102] + '\n' + language[103] + '\n' + language[104] + '\n' + language[105])
 @setup.error
 async def setup_error(ctx, error):
 	if isinstance(error, discord.ext.commands.BotMissingPermissions):
-		await ctx.send("This server does not support this command.")
+		await ctx.send(language[0])
 	if isinstance(error, discord.ext.commands.MissingPermissions):
-		await ctx.send("You need to be an administrator to use this command.")
+		await ctx.send(language[46])
 	if isinstance(error, discord.ext.commands.CommandOnCooldown):
-		await ctx.send("You must wait 30 minutes from last command use.")
+		error = str(error)
+		error = error.split()
+		time = error[len(error) - 1]
+		await ctx.send(language[4].format(time))
 #-------------------------------------------------------------------------------
 #------------------------------ START Image Tracking ---------------------------
 #-------------------------------------------------------------------------------
@@ -267,117 +290,150 @@ async def imagelooper(channel):
 	message2 = None
 	try:
 		mRef = db.reference('/imageChannels/{0}/lastMessage'.format(channel.guild.id))
-		message2 = int(mRef.get())
+		if mRef.get() == "None":
+			lastM = db.reference('/imageChannels/{0}'.format(channel.guild.id))
+			lastM.update({
+						'lastMessage': "952233422540144721"
+						})
+		else:
+			message2 = int(mRef.get())
 	except:
+		# Fetch message line goes here
 		try:
+			message3 = await channel.history(limit=1).flatten()
+			mRef.update({
+						'lastMessage': str(message3.id)
+						})
+			print(channel.id)
 			print(channel)
 		except:
-			print(channel.id)
+			print(channel)
 	
 	i = 0
-	try:
-		message = await channel.fetch_message(
-			channel.last_message_id)
-		user = None
-		guild = None
-		if message2 == message.id:
-			i += 1
-		else:
-			if len(message.attachments) > 0:
-				if len(message.attachments) > 1:
-					await channel.send("Only your first image was grabbed! Please submit any additional images after 10 second intervals.")
-				attachment = message.attachments[0]
-					# Debug line print(attachment.url)
-				if attachment.filename.endswith(".jpg") or attachment.filename.endswith(".jpeg") or attachment.filename.endswith(".png") or attachment.filename.endswith(".webp") or attachment.filename.endswith(".PNG") or attachment.filename.endswith(".JPG") or attachment.filename.endswith(".JPEG"):
-					image = attachment.url
-					await attachment.save(attachment.filename)
-					#print(attachment.filename)
-					image_path = r"{0}".format(attachment.filename)
-					#print(image_path)
-					img = cv2.imread(image_path)
-					#ret, thresh = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY) 
-					#kernel = np.ones((3,3),np.uint8)
-					#img = cv2.erode(thresh,kernel,iterations = 1)
-					#img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-					kernel = np.ones((1, 1), np.uint8)
-					img = cv2.dilate(img, kernel, iterations=1)
-					img = cv2.erode(img, kernel, iterations=1)
-					#plt.imshow(img, cmap="gray")
-					#plt.show()
-					pytesseract.tesseract_cmd = path_to_tesseract
-					text = pytesseract.image_to_string(img)
-					#print(text[:-1])
-					user = message.author.id
-					guild = message.guild.id
-					guild = bot.get_guild(guild)
-					# Check if user exists, and create profile if not
-					ref = db.reference('/users/{0}'.format(user))
-					if ref.get() == None:
-						# check for guild/clan
-						username = ((await guild.fetch_member(user)).nick)
-						if username == None:
-							username = ((await guild.fetch_member(user)).name)
-						ref.set({
-						'brwins': 0,
-						'clans': {
-							'currentclan': "none"
-						},
-						'name': username,
-						'onevsone': 0
-						})
-						await channel.send("Please set a clan before trying to track clan wins. t!setclan NAME")
-					else:
-						# Get clan 
-						fRef = db.reference('/users/{0}/clans'.format(user))
-						info = fRef.get()
-						infoList = list(info.items())
-						index = len(infoList) - 1
-						clan = infoList[index][1]
-						
-						win = "[{0}] won".format(clan)
-						win2 = "[{0}]  won".format(clan)
-						win3 = "[{0}]won".format(clan)
-						win4 = "[ {0}] won".format(clan)
-						win5 = "[ {0} ] won".format(clan)
-						win6 = "[{0} ] won".format(clan)
-						win7 = "{0}] won".format(clan)
-						win8 = "[{0} won".format(clan)
-						win9 = "[ {0}]  won".format(clan)
-						win10 = "[ {0} ]  won".format(clan)
-						#print("BEfore win check")
-						# Check for clan win statement
-						if win in text or win2 in text or win3 in text or win4 in text or win5 in text or win6 in text or win7 in text or win8 in text or win9 in text or win10 in text:
-							# Check if clan is not set
-							if clan == "none":
-								await channel.send("Please set a clan before trying to track clan wins.")
-							else:
-								#print("BEfore win update")
-								ref2 = db.reference('/users/{0}/clans/{1}'.format(user,clan))
-								wins = ref2.get()
-								wins = wins['wins']
-								wins = wins + 1
-								ref2.update({
-									'wins': wins
-								})
-								await channel.send("Win added, total = {0}".format(wins))
+	if message2 == "None":
+		lastM = db.reference('/imageChannels/{0}'.format(channel.guild.id))
+		lastM.update({
+					'lastMessage': "952233422540144721"
+					})
+	else:
+		try:
+			message = await channel.fetch_message(
+				channel.last_message_id)
+			#try:
+				# Get user ID
+			user = message.author.id
+				# Set reference
+				#ref5 = db.reference('/users/{0}/lang'.format(user))
+				#if ref5.get() == "french":
+				#	language = french
+				#	s = "D\u00e8"
+				#	a = "\u00e8"
+				#if ref5.get() == "english":
+				#	language = english
+				#	s = ""
+				#	a = ""
+				#if ref5.get() == None:
+				#	language = english
+				#	s = ""
+				#	a = ""
+			#except Exception as e:
+				#print(e)
+			opt = db.reference('/users/{0}/opt'.format(user))
+			if (opt.get() == True):
+				await channel.send(language[106])
+				return
+			user = None
+			guild = None
+			if message2 == message.id:
+				i += 1
+			else:
+				if len(message.attachments) > 0:
+					if len(message.attachments) > 1:
+						await channel.send(language[107])
+					attachment = message.attachments[0]
+					if attachment.filename.endswith(".jpg") or attachment.filename.endswith(".jpeg") or attachment.filename.endswith(".png") or attachment.filename.endswith(".webp") or attachment.filename.endswith(".PNG") or attachment.filename.endswith(".JPG") or attachment.filename.endswith(".JPEG"):
+						image = attachment.url
+						await attachment.save(attachment.filename)
+						#print(attachment.filename)
+						image_path = r"{0}".format(attachment.filename)
+						#print(image_path)
+						img = cv2.imread(image_path)
+						kernel = np.ones((1, 1), np.uint8)
+						img = cv2.dilate(img, kernel, iterations=1)
+						img = cv2.erode(img, kernel, iterations=1)
+						#plt.imshow(img, cmap="gray")
+						#plt.show()
+						pytesseract.tesseract_cmd = path_to_tesseract
+						text = pytesseract.image_to_string(img)
+						#print(text[:-1])
+						user = message.author.id
+						guild = message.guild.id
+						guild = bot.get_guild(guild)
+						# Check if user exists, and create profile if not
+						ref = db.reference('/users/{0}'.format(user))
+						if ref.get() == None:
+							# Add to scope list
+							newRef = db.reference('/userIDs/{0}'.format(user))
+							newRef.set({
+							'scope': True
+							})
+							# Get username/nickname
+							username = ((await guild.fetch_member(user)).nick)
+							if username == None:
+								username = ((await guild.fetch_member(user)).name)
+							username = username.replace('/',' ')
+							# Add to user list
+							# check for guild/clan
+							ref.set({
+							'brwins': 0,
+							'clans': {
+								'currentclan': "none"
+							},
+							'name': username,
+							'onevsone': 0
+							})
+							await channel.send(language[108])
 						else:
-							img = Image.open(image_path)
-							width, height = img.size
-							left = width / 5
-							top = height / 4
-							right = width
-							bottom = height
-							img = img.crop((left, top, right, bottom))
-							img = img.convert('L')  # convert image to monochrome
-							img = img.point(lambda p: p > 100 and 255)
-							text = pytesseract.image_to_string(img)
-							#plt.imshow(img)
-							#plt.show()
-							#print(text[:-1])
+							# Get clan 
+							fRef = db.reference('/users/{0}/clans'.format(user))
+							info = fRef.get()
+							infoList = list(info.items())
+							index = len(infoList) - 1
+							clan = infoList[index][1]
+							# Debug line print(attachment.url)
+							pRef = db.reference('/users/{0}/clans/{1}/previous'.format(user,clan))
+							#print(pRef.get() + "test")
+							if pRef.get() != None:
+								if text[:30] == pRef.get():
+									await channel.send(language[109].format(user))
+									print("{0} tried to cheat".format(user))
+									#language = english
+									return
+							# Convert database version to game version
+							clan = clan.replace('PERIOD5', '.')
+							clan = clan.replace('DOLLAR5', '$')
+							clan = clan.replace('HTAG5', '#')
+							clan = clan.replace('LBRACKET5', '[')
+							clan = clan.replace('SLASH5', '/')
+							clan = clan.replace('RBRACKET5', ']')
+							clan = clan.replace('QMARK5', '?')
+							
+							win = "[{0}] has won".format(clan)
+							win2 = "[{0}] has won".format(clan)
+							win3 = "[{0}]has won".format(clan)
+							win4 = "[ {0}] has won".format(clan)
+							win5 = "[ {0} ] has won".format(clan)
+							win6 = "[{0} ] has won".format(clan)
+							win7 = "{0}] has won".format(clan)
+							win8 = "[{0} has won".format(clan)
+							win9 = "[ {0}] has won".format(clan)
+							win10 = "[ {0} ] has won".format(clan)
+							#print("BEfore win check")
+							# Check for clan win statement
 							if win in text or win2 in text or win3 in text or win4 in text or win5 in text or win6 in text or win7 in text or win8 in text or win9 in text or win10 in text:
-							# Check if clan is not set
+								# Check if clan is not set
 								if clan == "none":
-									await channel.send("Please set a clan before trying to track clan wins.")
+									await channel.send(language[108])
 								else:
 									#print("BEfore win update")
 									ref2 = db.reference('/users/{0}/clans/{1}'.format(user,clan))
@@ -385,43 +441,84 @@ async def imagelooper(channel):
 									wins = wins['wins']
 									wins = wins + 1
 									ref2.update({
-										'wins': wins
+										'wins': wins,
+										'previous': text[:30]
 									})
-									await channel.send("Win added, total = {0}".format(wins))
-					os.remove(attachment.filename)
-					mRef = db.reference('/imageChannels/{0}'.format(channel.guild.id))
-					mRef.update({
-					'lastMessage': str(message.id)
-					})
-				else:
-					print("Invalid image type")
-					print(attachment.filename)
-	except Exception as e:
-		if isinstance(e, discord.ext.commands.MessageNotFound):
-			await channel.send("You deleted a message, please send the picture again!")
-			mRef = db.reference('/imageChannels/{0}'.format(channel.guild.id))
-			mRef.update({
-			'lastMessage': str(message2)
-			})
-		elif isinstance(e, discord.ext.commands.BotMissingPermissions):
-			ref = db.reference('/imageChannels/{0}'.format(channel.id))
-			ref.delete()
-			try:
-				await channel.send("This bot no longer has proper permissions to run image tracking in this channel. It has now been removed. Please contact {0}".format('<@138752093308583936>'))
-			except:
-				print("The channel {0} in guild {1}".format(channel.id,channel.guild.name))
-		else:
-			print("Channel then guild id")
-			print(channel.id)
-			print(channel.guild.id)
-			mRef = db.reference('/imageChannels/{0}'.format(channel.guild.id))
-			mRef.update({
-			'lastMessage': str(message2)
-			})
-			await channel.send("Uh oh, something went wrong! Please harrass your local Ryo5678 to fix it.")
-			print("imageTrack loops = {0}".format(i))
-			print(e)
-		#await ctx.send("!imageTrack")		
+									await channel.send(language[110].format(user,wins))
+									#language = english
+							else:
+								img = Image.open(image_path)
+								width, height = img.size
+								left = width / 5
+								top = height / 4
+								right = width
+								bottom = height
+								img = img.crop((left, top, right, bottom))
+								img = img.convert('L')  # convert image to monochrome
+								img = img.point(lambda p: p > 100 and 255)
+								text = pytesseract.image_to_string(img)
+								#plt.imshow(img)
+								#plt.show()
+								#print(text[:-1])
+								if win in text or win2 in text or win3 in text or win4 in text or win5 in text or win6 in text or win7 in text or win8 in text or win9 in text or win10 in text:
+								# Check if clan is not set
+									if clan == "none":
+										mRef = db.reference('/imageChannels/{0}'.format(channel.guild.id))
+										mRef.update({
+										'lastMessage': str(message.id)
+										})
+										await channel.send(language[108])
+									else:
+										#print("BEfore win update")
+										ref2 = db.reference('/users/{0}/clans/{1}'.format(user,clan))
+										wins = ref2.get()
+										wins = wins['wins']
+										wins = wins + 1
+										ref2.update({
+											'wins': wins,
+											'previous': text[:30]
+										})
+										mRef = db.reference('/imageChannels/{0}'.format(channel.guild.id))
+										mRef.update({
+										'lastMessage': str(message.id)
+										})
+										await channel.send(language[110].format(user,wins))
+						os.remove(attachment.filename)
+						mRef = db.reference('/imageChannels/{0}'.format(channel.guild.id))
+						mRef.update({
+						'lastMessage': str(message.id)
+						})
+					else:
+						z = "do nothing"
+						#print("Invalid image type")
+						#print(attachment.filename)
+		except Exception as e:
+			#language = english
+			if isinstance(e, discord.ext.commands.MessageNotFound):
+				await channel.send(language[111])
+				mRef = db.reference('/imageChannels/{0}'.format(channel.guild.id))
+				mRef.update({
+				'lastMessage': str(message2)
+				})
+			elif isinstance(e, discord.ext.commands.BotMissingPermissions):
+				ref = db.reference('/imageChannels/{0}'.format(channel.id))
+				ref.delete()
+				try:
+					await channel.send(language[112].format('<@138752093308583936>'))
+				except:
+					print("The channel {0} in guild {1}".format(channel.id,channel.guild.name))
+			else:
+				#print("Channel then guild id")
+				#print(channel.id)
+				#print(channel.guild.id)
+				mRef = db.reference('/imageChannels/{0}'.format(channel.guild.id))
+				mRef.update({
+				'lastMessage': str(message2)
+				})
+				#await channel.send("Uh oh, something went wrong! Please harrass your local Ryo5678 to fix it.")
+				#print("imageTrack loops = {0}".format(i))
+				#print(e)
+			#await ctx.send("!imageTrack")		
 @bot.command(pass_context = True)
 @commands.has_permissions(administrator=True)
 @commands.cooldown(1, 600, commands.BucketType.user)
@@ -429,7 +526,7 @@ async def imageTrack(ctx):
 	guild = ctx.message.guild.id
 	ref = db.reference('/imageChannels/{0}'.format(guild))
 	if ref.get() != None:
-		await ctx.send("Sorry this server already has a channel with image tracking enabled. Please dm Ryo5678 to change channels.")
+		await ctx.send(language[113])
 	else:
 		ref = db.reference('/imageChannels/{0}'.format(guild))
 		ref.update({
@@ -439,16 +536,19 @@ async def imageTrack(ctx):
 		channel = bot.get_channel(ctx.channel.id)
 		new_task = tasks.loop(seconds=5.0,count=None,reconnect=True)(imagelooper)
 		new_task.start(channel)
-		await ctx.send("Image Tracking Enabled For This Channel")
+		await ctx.send(language[114])
 	await ctx.message.delete()
 @imageTrack.error
 async def imageTrack_error(ctx, error):
 	if isinstance(error, discord.ext.commands.BotMissingPermissions):
-		await ctx.send("This server does not support this command.")
+		await ctx.send(language[0])
 	if isinstance(error, discord.ext.commands.MissingPermissions):
-		await ctx.send("You need to be an administrator to use this command.")
+		await ctx.send(language[46])
 	if isinstance(error, discord.ext.commands.CommandOnCooldown):
-		await ctx.send("You must wait 10 minutes from last command use.")
+		error = str(error)
+		error = error.split()
+		time = error[len(error) - 1]
+		await ctx.send(language[4].format(time))
 #-------------------------------------------------------------------------------
 #------------------------------ Set Announcement Channel -----------------------------
 #-------------------------------------------------------------------------------	
@@ -459,22 +559,25 @@ async def updates(ctx):
 	guild = ctx.message.guild.id
 	ref = db.reference('/channels/{0}'.format(guild))
 	if ref.get() != None:
-		await ctx.send("Sorry this server already has a channel with updates enabled. Please dm Ryo5678 to change channels.")
+		await ctx.send(language[115])
 	else:
 		ref = db.reference('/channels'.format(guild))
 		ref.update({
 		guild: "{0}".format(ctx.channel.id)
 		})
-		await ctx.send("Updates Enabled For This Channel")
+		await ctx.send(language[116])
 	await ctx.message.delete()
 @updates.error
 async def updates_error(ctx, error):
 	if isinstance(error, discord.ext.commands.BotMissingPermissions):
-		await ctx.send("This server does not support this command.")
+		await ctx.send(language[0])
 	if isinstance(error, discord.ext.commands.MissingPermissions):
-		await ctx.send("You need to be an administrator to use this command.")
+		await ctx.send(language[46])
 	if isinstance(error, discord.ext.commands.CommandOnCooldown):
-		await ctx.send("You must wait 10 minutes from last command use.")
+		error = str(error)
+		error = error.split()
+		time = error[len(error) - 1]
+		await ctx.send(language[4].format(time))
 #-------------------------------------------------------------------------------
 #------------------------------ SET Solo Elo Score -----------------------------
 #-------------------------------------------------------------------------------	
@@ -485,17 +588,23 @@ async def setSolo(ctx,elo):
 	guild = ctx.message.guild.id
 	num = float(elo)
 	if num >= 500 or num < 0:
-		await ctx.send("This number is impossible to obtain. Sorry, but cheating is not tolerated.")
+		await ctx.send(language[117])
 	else:
 		guild = bot.get_guild(guild)
 		username = ((await guild.fetch_member(user)).nick)
 		if username == None:
 			username = ((await guild.fetch_member(user)).name)
 			
-		await ctx.send("This command will be replaced by image tracking in the future! Abuse of this command may result in a ban from using the bot.")
+		await ctx.send(language[118])
 		
 		fRef = db.reference('/users/{0}'.format(user))
 		if fRef.get() == None:
+			# Add to scope list
+			newRef = db.reference('/userIDs/{0}'.format(user))
+			newRef.set({
+			'scope': True
+			})
+			# Add to user list
 			fRef.set({
 			'brwins': 0,
 			'clans': {
@@ -513,11 +622,14 @@ async def setSolo(ctx,elo):
 @setSolo.error
 async def setSolo_error(ctx, error):
 	if isinstance(error, discord.ext.commands.MissingRequiredArgument):
-		await ctx.send("Please include the 1v1 score to set.\nExample: t!setSolo 42.0")	
+		await ctx.send(language[119])	
 	if isinstance(error, discord.ext.commands.BotMissingPermissions):
-		await ctx.send("This server does not support this command.")
+		await ctx.send(language[0])
 	if isinstance(error, discord.ext.commands.CommandOnCooldown):
-		await ctx.send("You must wait 1 minute from last command use.")
+		error = str(error)
+		error = error.split()
+		time = error[len(error) - 1]
+		await ctx.send(language[4].format(time))
 #-------------------------------------------------------------------------------
 #--------------------------------- SET Clan ------------------------------------
 #-------------------------------------------------------------------------------	
@@ -527,6 +639,13 @@ async def setclan(ctx,name):
 	user = ctx.message.author.id
 	guild = ctx.message.guild.id
 	clan = name.upper()
+	clan = clan.replace('.', 'period5')
+	clan = clan.replace('$', 'dollar5')
+	clan = clan.replace('#', 'htag5')
+	clan = clan.replace('[', 'lbracket5')
+	clan = clan.replace('/', 'slash5')
+	clan = clan.replace(']', 'rbracket5')
+	clan = clan.replace('?', 'qmark5')
 	
 	guild = bot.get_guild(guild)
 	username = ((await guild.fetch_member(user)).nick)
@@ -536,50 +655,24 @@ async def setclan(ctx,name):
 	# check if user exists and update clan or create user
 	fRef = db.reference('/users/{0}'.format(user))
 	if fRef.get() == None:
-		guild = ctx.message.guild.id
-		if guild == 900982253679702036:
-			clan = "ELITE"
-		if guild == 907381503716114513:
-			clan = "CUM"
-		ref2 = db.reference('/{0}/users/{1}'.format(guild,user))
-		oldUser = ref2.get()
-		# check if old system user
-		if(oldUser is not None):
-			old = list(oldUser.items())
-			if len(old) == 3:
-				index = 2
-				index2 = 1
-			if len(old) == 5:
-				index = 4
-				index2 = 2
-			if len(old) == 4:
-				index = 3
-				index2 = 1
-			fRef.set({
-			'brwins': 0,
-			'clans': {
+		# Add to scope list
+		newRef = db.reference('/userIDs/{0}'.format(user))
+		newRef.set({
+		'scope': True
+		})
+		# Add to user list
+		fRef.set({
+		'brwins': 0,
+		'clans': {
 			clan: {
-				'wins': old[index2][1]
-			},
+				'wins': 0
+				},
 			'currentclan': clan
-			},
-			'name': username,
-			'onevsone': (old[index][1])
-			})
-			await ctx.send("Profile transferred from old to new system.")
-		else:
-			fRef.set({
-			'brwins': 0,
-			'clans': {
-				clan: {
-					'wins': 0
-					},
-				'currentclan': clan
-			},
-			'name': username,
-			'onevsone': num
-			})
-			await ctx.send(embed=profileDisplay(ctx,user,username))
+		},
+		'name': username,
+		'onevsone': num
+		})
+		await ctx.send(embed=profileDisplay(ctx,user,username))
 	else:
 		fRef = db.reference('/users/{0}/clans'.format(user))
 		info = fRef.get()
@@ -604,44 +697,89 @@ async def setclan(ctx,name):
 @setclan.error
 async def setclan_error(ctx, error):
 	if isinstance(error, discord.ext.commands.MissingRequiredArgument):
-		await ctx.send("Please enter the name of the clan. Example: t!setclan CUM")	
+		await ctx.send(language[120])	
 	if isinstance(error, discord.ext.commands.BotMissingPermissions):
-		await ctx.send("This server does not support this command.")
+		await ctx.send(language[0])
 	if isinstance(error, discord.ext.commands.CommandOnCooldown):
-		await ctx.send("You must wait 1 minute from last command use.")
+		error = str(error)
+		error = error.split()
+		time = error[len(error) - 1]
+		await ctx.send(language[4].format(time))
 
 #-------------------------------------------------------------------------------
-#------------------------------ SET Total Clan Wins ----------------------------
+#------------------------------ Remove Clan Wins ----------------------------
 #-------------------------------------------------------------------------------	
 @bot.command(pass_context = True)
-@commands.has_permissions(administrator=True)
-async def setWins(ctx, name: discord.User ,wins):
-	user = name.id
-	guild = ctx.message.guild.id
-	num = int(wins)
-	#print(guild)
-	#print(user)
-	
-	fRef = db.reference('/{0}/users/{1}'.format(guild,user))
-	if fRef.get() == None:
-		#print("Inside if")
-		await ctx.send("User does not exist yet. Make sure to initialize them with !add @{0}".format(ctx.message.author))
-	else:
-		#print("Inside else")
-		ref = db.reference('/{0}/users/{1}'.format(guild,user))
-		ref.update({
-		'leaderboard': num
-		})
-@setWins.error
-async def setWins_error(ctx, error):
+async def removeWins(ctx,user,wins):
+	# Assign/Retrieve command caller ID
+	caller = ctx.author.id
+	# Check if caller is approved user
+	for x in range(len(winAdmins)):
+		if caller == winAdmins[x][0]:
+			clan = winAdmins[x][1]
+	if clan == None:
+		await ctx.send(language[121])
+		return
+	# Check if integer discord ID was provided
+	try:
+		int(user)
+	except:
+		await ctx.send(language[122])
+		return
+	# Check if integer was provided for wins
+	try:
+		int(wins)
+	except:
+		await ctx.send(language[122])
+		return
+	# Check if user exists in databse
+	ref = db.reference('users/{0}'.format(user))
+	if ref.get() == None:
+		await ctx.send(language[123])
+		return
+	# Check if user is in callers clan
+	ref = db.reference('users/{0}/clans/{1}/wins'.format(user,clan))
+	count = ref.get()
+	if count == None:
+		await ctx.send(language[124].format(clan))
+		return
+	# Update wins
+	total = count - int(wins)
+	if total < 0:
+		total = 0
+	ref = db.reference('users/{0}/clans/{1}'.format(user,clan))
+	ref.update({
+		'wins': total
+	})
+	await ctx.send(language[125].format(total))
+@removeWins.error
+async def removeWins_error(ctx, error):
 	if isinstance(error, discord.ext.commands.MissingRequiredArgument):
-		await ctx.send("Please enter the name of the user you wish to update.\nAfter the name please include the number of wins to set.\nExample: !setWins @Ryo5678 29")	
+		await ctx.send(language[126] + '\n' + language[127] + '\n' + language[128])
+	if isinstance(error, discord.ext.commands.BotMissingPermissions):
+		await ctx.send(language[0])
 
 #-------------------------------------------------------------------------------
 #------------------------------ PROFILE COMMAND --------------------------------
 #-------------------------------------------------------------------------------
 
 def profileDisplay(ctx,user,username):
+	# Get user ID
+	user = ctx.message.author.id
+	# Set reference
+	#ref = db.reference('/users/{0}/lang'.format(user))
+	#if ref.get() == "french":
+	#	language = french
+	#	s = "D\u00e8"
+	#	a = "\u00e8"
+	#if ref.get() == "english":
+	#	language = english
+	#	s = ""
+	#	a = ""
+	#if ref.get() == None:
+	#	language = english
+	#	s = ""
+	#	a = ""
 	ref = db.reference('/users/{0}'.format(user))
 	info = ref.get()
 	
@@ -650,25 +788,66 @@ def profileDisplay(ctx,user,username):
 	infoList = list(info.items())
 	if(infoList[1][1]['currentclan'] == "none"):
 		br = infoList[0][1]
-		ovo = infoList[3][1]
+		ovo = infoList[4][1]
 		clan = infoList[1][1]['currentclan']
 	else:
+		clans = infoList[1][1]
+		clans = list(clans.items())
+		x = len(clans) - 2
+		clanList = []
+		wins = []
+		try:
+			# Loop through all user's clans
+			while x >= 0:
+				clanList.append(clans[x][0])
+				temp = clans[x][1]
+				try:
+					temp = list(temp.items())
+					if len(temp) < 2:
+						ref = db.reference('/users/{0}/clans/{1}'.format(user,clans[x][0]))
+						ref.update({
+							'previous': "test"
+							})
+						wins.append(temp[0][1])
+					else:
+						wins.append(temp[1][1])
+				
+				except:
+						ref = db.reference('/users/{0}/clans/{1}'.format(user,temp))
+						ref.update({
+							'previous': "test",
+							'wins': 0
+							})
+						wins.append(0)
+				x = x - 1	
+		except Exception as e:
+			print(e)
 		br = infoList[0][1]
-		ovo = infoList[3][1]
+		ovo = infoList[4][1]
 		clan = infoList[1][1]['currentclan']
-		cw = infoList[1][1]['{0}'.format(clan)]['wins']
+		if '.' or '$' or'#' or '[' or '/' or ']' or '?' in clan:
+			clan = clan.replace('.', 'period5')
+			clan = clan.replace('$', 'dollar5')
+			clan = clan.replace('#', 'htag5')
+			clan = clan.replace('[', 'lbracket5')
+			clan = clan.replace('/', 'slash5')
+			clan = clan.replace(']', 'rbracket5')
+			clan = clan.replace('?', 'qmark5')
+		# CW = total clan wins, unused at the moment
+		#cw = infoList[1][1]['{0}'.format(clan)]['wins']
 		br = int(br)
 		ovo = float(ovo)
-		cw = int(cw)
+		#cw = int(cw)
 	
 	guild = ctx.message.guild.id
 	# Profile Embed
-	sheet = discord.Embed(title="Profile", description="**{0}'s stats**".format(username), color=0x0000FF)
-	sheet.add_field(name="Clan", value=clan, inline=False)
-	sheet.add_field(name="1v1 elo", value=ovo, inline=False)
-	sheet.add_field(name="Battle Royal Wins", value=br, inline=False)
-	sheet.add_field(name="Total Clan Wins", value=cw, inline=False)
-	
+	sheet = discord.Embed(title=language[129], description=language[130].format(username), color=0x0000FF)
+	sheet.add_field(name=language[131], value=clan, inline=False)
+	sheet.add_field(name=language[132], value=ovo, inline=False)
+	sheet.add_field(name=language[133], value=br, inline=False)
+	# Loop through all user clans
+	for x in range(len(wins)):
+		sheet.add_field(name=language[134].format(clanList[x]), value=wins[x], inline=False)
 	return sheet
 
 @bot.command(pass_context = True)
@@ -685,6 +864,12 @@ async def profile(ctx, name: discord.Member = None):
 	# check if user exists
 	ref3 = db.reference('/users/{0}'.format(user))
 	if ref3.get() == None:
+		# Add to scope list
+		newRef = db.reference('/userIDs/{0}'.format(user))
+		newRef.set({
+		'scope': True
+		})
+		# Add to user list
 		# Wrap in try/except in future, for this scenario t!profile @user (user does not exist)
 		username = ((await guild.fetch_member(user)).nick)
 		if username == None:
@@ -727,77 +912,25 @@ async def profile(ctx, name: discord.Member = None):
 @profile.error
 async def profile_error(ctx, error):
 	if isinstance(error, discord.ext.commands.BotMissingPermissions):
-		await ctx.send("This server does not support this command.")
+		await ctx.send(language[0])	
 	if isinstance(error, discord.ext.commands.CommandOnCooldown):
-		await ctx.send("You must wait 1 minute from last command use.")
-#-------------------------------------------------------------------------------
-#----------------------- CLAN RATED LEADERBOARD COMMAND ------------------------
-#-------------------------------------------------------------------------------
-@bot.command(pass_context = True)
-@commands.is_owner()
-async def leaderboard(ctx):
-	check = True
-	await ctx.message.delete()
-	guild = ctx.message.guild.id
-	guild = bot.get_guild(guild)
-	board = discord.Embed(title="{0} Leaderboard".format(guild.name), description="**Current Top 10**", color=0xa81207)
-	board.add_field(name="ðŸ¥‡**1st Place**ðŸ¥‡", value="test", inline=False)
-	board.add_field(name="ðŸ¥ˆ**2nd Place**ðŸ¥ˆ", value="test", inline=False)
-	board.add_field(name="ðŸ¥‰**3rd Place**ðŸ¥‰", value="test", inline=False)
-	board.add_field(name="ðŸ…**4th and 5th**ðŸ…", value="test", inline=False)
-	board.add_field(name="ðŸŽ–ï¸**6th to 10thðŸŽ–ï¸**", value="test", inline=False)
-	timestamp = datetime.now()
-	board.add_field(name="\u200b",value="Last refreshed at " + timestamp.strftime(r"%I:%M %p") + " EST",inline=False)
-	msg = await ctx.send(embed=board)
-	while check:
-		boardRef = db.reference('/{0}/users'.format(guild.id))
-		boardList = boardRef.order_by_child('leaderboard').limit_to_last(10).get()
-		cL = list(boardList.items())
-		cL.reverse()
-		max = 10
-		y = len(cL)
-		if y <= 10:
-			max = max - y
-		for x in range(max):
-			cL.append(["None",{'leaderboard':0}])
-		cL.reverse()
-		
-		bL = [[0 for x in range(2)] for y in range(10)]
-		for x in range(10):
-			bL[x][1] = cL[x][1]
-			if cL[x][0] is not "None":
-				temp = cL[x][0]
-			try:
-				bL[x][0] = ((await guild.fetch_member(temp)).nick)
-			except:
-				ref = db.reference('/{0}/users/{1}/leaderboard'.format(guild.id,temp))
-				ref.delete()
-				check = False
-			if bL[x][0] is None:
-				bL[x][0] = (await guild.fetch_member(temp)).name
-		board.set_field_at(0,name="ðŸ¥‡**1st Place**ðŸ¥‡", value="{0} - {1} wins".format(bL[9][0],bL[9][1]['leaderboard']), inline=False)
-		board.set_field_at(1,name="ðŸ¥ˆ**2nd Place**ðŸ¥ˆ", value="{0} - {1} wins".format(bL[8][0],bL[8][1]['leaderboard']), inline=False)
-		board.set_field_at(2,name="ðŸ¥‰**3rd Place**ðŸ¥‰", value="{0} - {1} wins".format(bL[7][0],bL[7][1]['leaderboard']), inline=False)
-		board.set_field_at(3,name="ðŸ…**4th and 5th**ðŸ…", value="{0} - {1} wins \n{2} - {3} wins \n".format(bL[6][0],bL[6][1]['leaderboard'],bL[5][0],bL[5][1]['leaderboard']), inline=False)
-		board.set_field_at(4,name="ðŸŽ–ï¸**6th to 10thðŸŽ–ï¸**", value="{0} - {1} wins \n{2} - {3} wins \n{4} - {5} wins \n{6} - {7} wins \n{8} - {9} wins \n".format(bL[4][0],bL[4][1]['leaderboard'],bL[3][0],bL[3][1]['leaderboard'],bL[2][0],bL[2][1]['leaderboard'],bL[1][0],bL[1][1]['leaderboard'],bL[0][0],bL[0][1]['leaderboard']), inline=False)
-		timestamp = datetime.now()
-		board.set_field_at(5,name="\u200b",value="Last refreshed at " + timestamp.strftime(r"%I:%M %p"),inline=False)
-		await msg.edit(embed = board)
-		await asyncio.sleep(900)
-	check = True
-@leaderboard.error
-async def leaderboard_error(ctx, error):
-	if isinstance(error, discord.ext.commands.NotOwner):
-		await ctx.send("This command is restricted to Ryo5678 only.")	
-	if isinstance(error, discord.ext.commands.BotMissingPermissions):
-		print("Leaderboard called in channel with no send message perms")
+		error = str(error)
+		error = error.split()
+		time = error[len(error) - 1]
+		await ctx.send(language[4].format(time))
+
 @bot.command(pass_context = True)
 @commands.cooldown(1, 7200, commands.BucketType.user)
 async def clanboard(ctx,clan):
 	try:
 		clan.strip("[]")
-		clan = clan.replace('.', '*')
-		clan = clan.replace('$', 'S')
+		clan = clan.replace('.', 'period5')
+		clan = clan.replace('$', 'dollar5')
+		clan = clan.replace('#', 'htag5')
+		clan = clan.replace('[', 'lbracket5')
+		clan = clan.replace('/', 'slash5')
+		clan = clan.replace(']', 'rbracket5')
+		clan = clan.replace('?', 'qmark5')
 		clan = clan.upper()
 		guild = ctx.message.guild.id
 		try:
@@ -815,94 +948,99 @@ async def clanboard(ctx,clan):
 			x = len(users2)
 			users2.sort(key=lambda x: int(x[1]['clans']['{0}'.format(clan)]['wins']))
 			users2.reverse()
-			ladder = discord.Embed(title="**{0} wins**".format(clan), description="**Current Top 25**", color=0x33DDFF)
-			ladder2 = discord.Embed(title="**{0} wins**".format(clan), description="**Current Top 26 to 50**", color=0x33DDFF)
-			ladder3 = discord.Embed(title="**{0} wins**".format(clan), description="**Current Top 51 to 75**", color=0x33DDFF)
-			ladder4 = discord.Embed(title="**{0} wins**".format(clan), description="**Current Top 76 to 100**", color=0x33DDFF)
+			ladder = discord.Embed(title=language[135].format(clan), description=language[136], color=0x33DDFF)
+			ladder2 = discord.Embed(title=language[135].format(clan), description=language[137], color=0x33DDFF)
+			ladder3 = discord.Embed(title=language[135].format(clan), description=language[138], color=0x33DDFF)
+			ladder4 = discord.Embed(title=language[135].format(clan), description=language[139], color=0x33DDFF)
 			# One Ladder
 			if x <= 25:
 				for i in range(x):
 					name = await bot.fetch_user(users2[i][0])
-					ladder.add_field(name="#{0} {1} ".format(i+1,name.name), value="Wins: {0}".format(users2[i][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
+					ladder.add_field(name=language[140].format(i+1,name.name), value=language[141].format(users2[i][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
 				msg = await ctx.send(embed=ladder)
 			# Two Ladders
 			elif x <= 50:
-				await ctx.send("The leaderboard is over 25 members, this may take some time, please wait for it to process.")
+				await ctx.send(language[142])
 				for i in range(25):
 					name = await bot.fetch_user(users2[i][0])
-					ladder.add_field(name="#{0} {1} ".format(i+1,name.name), value="Wins: {0}".format(users2[i][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
+					ladder.add_field(name=language[140].format(i+1,name.name), value=language[141].format(users2[i][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
 				msg = await ctx.send(embed=ladder)
 				for i in range(x-25):
 					name = await bot.fetch_user(users2[i+25][0])
-					ladder2.add_field(name="#{0} {1} ".format(i+26,name.name), value="Wins: {0}".format(users2[i+25][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
+					ladder2.add_field(name=language[140].format(i+26,name.name), value=language[141].format(users2[i+25][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
 				msg2 = await ctx.send(embed=ladder2)
 			# Three Ladders
 			elif x <= 75:
-				await ctx.send("The leaderboard is over 50 members, this may take some time, please wait for it to process.")
+				await ctx.send(language[143])
 				for i in range(25):
 					name = await bot.fetch_user(users2[i][0])
-					ladder.add_field(name="#{0} {1} ".format(i+1,name.name), value="Wins: {0}".format(users2[i][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
+					ladder.add_field(name=language[140].format(i+1,name.name), value=language[141].format(users2[i][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
 				msg = await ctx.send(embed=ladder)
 				for i in range(25):
 					name = await bot.fetch_user(users2[i+25][0])
-					ladder2.add_field(name="#{0} {1} ".format(i+26,name.name), value="Wins: {0}".format(users2[i+25][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
+					ladder2.add_field(name=language[140].format(i+26,name.name), value=language[141].format(users2[i+25][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
 				msg2 = await ctx.send(embed=ladder2)
 				for i in range(x-50):
 					name = await bot.fetch_user(users2[i+50][0])
-					ladder3.add_field(name="#{0} {1} ".format(i+51,name.name), value="Wins: {0}".format(users2[i+50][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
+					ladder3.add_field(name=language[140].format(i+51,name.name), value=language[141].format(users2[i+50][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
 				msg3 = await ctx.send(embed=ladder3)
 			# Four Ladders
 			elif x <= 100:
-				await ctx.send("The leaderboard is over 75 members, this may take some time, please wait for it to process.")
+				await ctx.send(language[144])
 				for i in range(25):
 					name = await bot.fetch_user(users2[i][0])
-					ladder.add_field(name="#{0} {1} ".format(i+1,name.name), value="Wins: {0}".format(users2[i][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
+					ladder.add_field(name=language[140].format(i+1,name.name), value=language[141].format(users2[i][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
 				msg = await ctx.send(embed=ladder)
 				for i in range(25):
 					name = await bot.fetch_user(users2[i+25][0])
-					ladder2.add_field(name="#{0} {1} ".format(i+26,name.name), value="Wins: {0}".format(users2[i+25][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
+					ladder2.add_field(name=language[140].format(i+26,name.name), value=language[141].format(users2[i+25][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
 				msg2 = await ctx.send(embed=ladder2)
 				for i in range(25):
 					name = await bot.fetch_user(users2[i+50][0])
-					ladder3.add_field(name="#{0} {1} ".format(i+51,name.name), value="Wins: {0}".format(users2[i+50][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
+					ladder3.add_field(name=language[140].format(i+51,name.name), value=language[141].format(users2[i+50][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
 				msg3 = await ctx.send(embed=ladder3)
 				for i in range(x-75):
 					name = await bot.fetch_user(users2[i+75][0])
-					ladder4.add_field(name="#{0} {1} ".format(i+76,name.name), value="Wins: {0}".format(users2[i+75][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
+					ladder4.add_field(name=language[140].format(i+76,name.name), value=language[141].format(users2[i+75][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
 				msg4 = await ctx.send(embed=ladder4)
 			# Catch if members is > 100. Four ladder maximum
 			else:
-				await ctx.send("The leaderboard is currently limited to 100 clan members, please wait for it to process.")
+				await ctx.send(language[145])
 				for i in range(25):
 					name = await bot.fetch_user(users2[i][0])
-					ladder.add_field(name="#{0} {1} ".format(i+1,name.name), value="Wins: {0}".format(users2[i][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
+					ladder.add_field(name=language[140].format(i+1,name.name), value=language[141].format(users2[i][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
 				msg = await ctx.send(embed=ladder)
 				for i in range(25):
 					name = await bot.fetch_user(users2[i+25][0])
-					ladder2.add_field(name="#{0} {1} ".format(i+26,name.name), value="Wins: {0}".format(users2[i+25][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
+					ladder2.add_field(name=language[140].format(i+26,name.name), value=language[141].format(users2[i+25][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
 				msg2 = await ctx.send(embed=ladder2)
 				for i in range(25):
 					name = await bot.fetch_user(users2[i+50][0])
-					ladder3.add_field(name="#{0} {1} ".format(i+51,name.name), value="Wins: {0}".format(users2[i+50][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
+					ladder3.add_field(name=language[140].format(i+51,name.name), value=language[141].format(users2[i+50][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
 				msg3 = await ctx.send(embed=ladder3)
 				for i in range(25):
 					name = await bot.fetch_user(users2[i+75][0])
-					ladder4.add_field(name="#{0} {1} ".format(i+76,name.name), value="Wins: {0}".format(users2[i+75][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
+					ladder4.add_field(name=language[140].format(i+76,name.name), value=language[141].format(users2[i+75][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
 				msg4 = await ctx.send(embed=ladder4)
 		except Exception as e:
-			await ctx.send("Command failed. Please contact {0}".format('<@138752093308583936>'))
+			await ctx.send(language[146].format('<@138752093308583936>'))
 			print("Clanboard command call failed.")
 			print(e)
 	except:
-		await ctx.send("The value entered is not an integer. It must be a positive number, no decimals.")
+		await ctx.send(language[147])
 @clanboard.error
 async def clanboard_error(ctx, error):
 	if isinstance(error, discord.ext.commands.BotMissingPermissions):
-		await ctx.send("This server does not support this command.")
+		await ctx.send(language[0])
 	if isinstance(error, discord.ext.commands.MissingPermissions):
-		await ctx.send("You need to be an administrator to use this command.")
+		await ctx.send(language[46])
+	if isinstance(error, discord.ext.commands.MissingRequiredArgument):
+		await ctx.send(language[120])
 	if isinstance(error, discord.ext.commands.CommandOnCooldown):
-		await ctx.send("You must wait 2 hours from last command use.")
+		error = str(error)
+		error = error.split()
+		time = error[len(error) - 1]
+		await ctx.send(language[4].format(time))
 #-------------------------------------------------------------------------------
 #------------------------- 1v1 LEADERBOARD COMMAND -----------------------------
 #-------------------------------------------------------------------------------
@@ -913,13 +1051,14 @@ async def sololoop(ctx,clan):
 		refList = ref.order_by_child('onevsone').limit_to_last(25).get()
 		scores = list(refList.items())
 		scores.reverse()
-		ladder = discord.Embed(title="Global 1v1 Rankings", description="**Current Top 25**", color=0x33DDFF)
+		ladder = discord.Embed(title=language[148], description=language[136], color=0x33DDFF)
 		# First Ladder
 		for i in range(25):
-			ladder.add_field(name="#{0} ".format(i+1) + clanList2[i][0], value=clanList2[i][1]['score'], inline=True)
+			ladder.add_field(name=language[149].format(i+1) + clanList2[i][0], value=clanList2[i][1]['score'], inline=True)
 		msg = await ctx.send(embed=ladder)
-	except:
-		await ctx.send("Command failed. Please contact {0}".format('<@138752093308583936>'))
+	except Exception as e:
+		print(e)
+		await ctx.send(language[146].format('<@138752093308583936>'))
 		check = False
 		print("Soloboard command call failed before loop started.")
 
@@ -931,9 +1070,11 @@ async def soloboard(ctx,clan):
 @soloboard.error
 async def soloboard_error(ctx, error):
 	if isinstance(error, discord.ext.commands.NotOwner):
-		await ctx.send("This command is restricted to Ryo5678 only.")	
+		await ctx.send(language[3])
+	if isinstance(error, discord.ext.commands.MissingRequiredArgument):
+		await ctx.send(language[120])
 	if isinstance(error, discord.ext.commands.BotMissingPermissions):
-		print("soloboard called in channel with no send message perms")
+		await ctx.send(language[0])
 
 @bot.command(pass_context = True)
 @commands.cooldown(1, 600, commands.BucketType.user)
@@ -947,71 +1088,74 @@ async def oneboard(ctx,x):
 				refList = ref.order_by_child('onevsone').limit_to_last(x).get()
 				scores = list(refList.items())
 				scores.reverse()
-				ladder = discord.Embed(title="Global 1v1 Rankings", description="**Current Top 25**", color=0x33DDFF)
-				ladder2 = discord.Embed(title="Global 1v1 Rankings", description="**Current Top 26 to 50**", color=0x33DDFF)
-				ladder3 = discord.Embed(title="Global 1v1 Rankings", description="**Current Top 51 to 75**", color=0x33DDFF)
-				ladder4 = discord.Embed(title="Global 1v1 Rankings", description="**Current Top 76 to 100**", color=0x33DDFF)
+				ladder = discord.Embed(title=language[148], description=language[136], color=0x33DDFF)
+				ladder2 = discord.Embed(title=language[148], description=language[137], color=0x33DDFF)
+				ladder3 = discord.Embed(title=language[148], description=language[138], color=0x33DDFF)
+				ladder4 = discord.Embed(title=language[148], description=language[139], color=0x33DDFF)
 				# First Ladder
 				if x <= 25:
 					for i in range(x):
 						name = await bot.fetch_user(scores[i][0])
-						ladder.add_field(name="#{0} {1} ".format(i+1,name.name), value="Elo: {0} Clan: {1}".format(scores[i][1]['onevsone'],scores[i][1]['clans']['currentclan']), inline=True)
+						ladder.add_field(name=language[140].format(i+1,name.name), value="Elo: {0} Clan: {1}".format(scores[i][1]['onevsone'],scores[i][1]['clans']['currentclan']), inline=True)
 					msg = await ctx.send(embed=ladder)
 				elif x <= 50:
 					for i in range(25):
 						name = await bot.fetch_user(scores[i][0])
-						ladder.add_field(name="#{0} {1} ".format(i+1,name.name), value="Elo: {0} Clan: {1}".format(scores[i][1]['onevsone'],scores[i][1]['clans']['currentclan']), inline=True)
+						ladder.add_field(name=language[140].format(i+1,name.name), value="Elo: {0} Clan: {1}".format(scores[i][1]['onevsone'],scores[i][1]['clans']['currentclan']), inline=True)
 					msg = await ctx.send(embed=ladder)
 					for i in range(x-25):
 						name = await bot.fetch_user(scores[i+25][0])
-						ladder2.add_field(name="#{0} {1} ".format(i+26,name.name), value="Elo: {0} Clan: {1}".format(scores[i+25][1]['onevsone'],scores[i+25][1]['clans']['currentclan']), inline=True)
+						ladder2.add_field(name=language[140].format(i+26,name.name), value="Elo: {0} Clan: {1}".format(scores[i+25][1]['onevsone'],scores[i+25][1]['clans']['currentclan']), inline=True)
 					msg2 = await ctx.send(embed=ladder2)
 				elif x <= 75:
 					for i in range(25):
 						name = await bot.fetch_user(scores[i][0])
-						ladder.add_field(name="#{0} {1} ".format(i+1,name.name), value="Elo: {0} Clan: {1}".format(scores[i][1]['onevsone'],scores[i][1]['clans']['currentClan']), inline=True)
+						ladder.add_field(name=language[140].format(i+1,name.name), value=language[150].format(scores[i][1]['onevsone'],scores[i][1]['clans']['currentClan']), inline=True)
 					msg = await ctx.send(embed=ladder)
 					for i in range(50):
 						name = await bot.fetch_user(scores[i+25][0])
-						ladder2.add_field(name="#{0} {1} ".format(i+26,name.name), value=scores[i+25][1]['onevsone'], inline=True)
+						ladder2.add_field(name=language[140].format(i+26,name.name), value=scores[i+25][1]['onevsone'], inline=True)
 					msg2 = await ctx.send(embed=ladder2)
 					for i in range(x-50):
 						name = await bot.fetch_user(scores[i+50][0])
-						ladder3.add_field(name="#{0} {1} ".format(i+51,name.name), value=scores[i+50][1]['onevsone'], inline=True)
+						ladder3.add_field(name=language[140].format(i+51,name.name), value=scores[i+50][1]['onevsone'], inline=True)
 					msg3 = await ctx.send(embed=ladder3)
 				elif x <= 100:
 					for i in range(25):
 						name = await bot.fetch_user(scores[i][0])
-						ladder.add_field(name="#{0} {1} ".format(i+1,name.name), value="Elo: {0} Clan: {1}".format(scores[i][1]['onevsone'],scores[i][1]['clans']['currentClan']), inline=True)
+						ladder.add_field(name=language[140].format(i+1,name.name), value=language[150].format(scores[i][1]['onevsone'],scores[i][1]['clans']['currentClan']), inline=True)
 					msg = await ctx.send(embed=ladder)
 					for i in range(50):
 						name = await bot.fetch_user(scores[i+25][0])
-						ladder2.add_field(name="#{0} {1} ".format(i+26,name.name), value=scores[i+25][1]['onevsone'], inline=True)
+						ladder2.add_field(name=language[140].format(i+26,name.name), value=scores[i+25][1]['onevsone'], inline=True)
 					msg2 = await ctx.send(embed=ladder2)
 					for i in range(75):
 						name = await bot.fetch_user(scores[i+50][0])
-						ladder3.add_field(name="#{0} {1} ".format(i+51,name.name), value=scores[i+50][1]['onevsone'], inline=True)
+						ladder3.add_field(name=language[140].format(i+51,name.name), value=scores[i+50][1]['onevsone'], inline=True)
 					msg3 = await ctx.send(embed=ladder3)
 					for i in range(x-75):
 						name = await bot.fetch_user(scores[i+75][0])
-						ladder4.add_field(name="#{0} {1} ".format(i+76,name.name), value=scores[i+75][1]['onevsone'], inline=True)
+						ladder4.add_field(name=language[140].format(i+76,name.name), value=scores[i+75][1]['onevsone'], inline=True)
 					msg4 = await ctx.send(embed=ladder4)
 			except Exception as e:
-				await ctx.send("Command failed. Please contact {0}".format('<@138752093308583936>'))
+				await ctx.send(language[146].format('<@138752093308583936>'))
 				print("Oneboard command call failed.")
 				print(e)
 		else:
-			await ctx.send("50 is the maximum value for this command")
+			await ctx.send(language[151])
 	except:
-		await ctx.send("The value entered is not an integer. It must be a positive number, no decimals.")
+		await ctx.send(language[147])
 @oneboard.error
 async def oneboard_error(ctx, error):
 	if isinstance(error, discord.ext.commands.BotMissingPermissions):
-		await ctx.send("This server does not support this command.")
+		await ctx.send(language[0])
 	if isinstance(error, discord.ext.commands.MissingPermissions):
-		await ctx.send("You need to be an administrator to use this command.")
+		await ctx.send(language[46])
 	if isinstance(error, discord.ext.commands.CommandOnCooldown):
-		await ctx.send("You must wait 10 minutes from last command use.")
+		error = str(error)
+		error = error.split()
+		time = error[len(error) - 1]
+		await ctx.send(language[4].format(time))
 #-------------------------------------------------------------------------------
 #------------------------------ Clan Ranking Tracking --------------------------
 #-------------------------------------------------------------------------------	
@@ -1030,6 +1174,7 @@ async def clanRanker():
 			message2 = message
 			text = message.content
 			textList = text.split()
+			
 			if len(textList) == 3:
 				check3 = False
 			else:
@@ -1038,6 +1183,8 @@ async def clanRanker():
 					players = textList[2]
 					clan = textList[3]
 					points = textList[4]
+					points = points.split("->")
+					points = points[1]
 					points = re.sub(r'[^\d.]+', '', points)
 					points.strip("[]")
 				else:
@@ -1045,11 +1192,18 @@ async def clanRanker():
 					players = textList[1]
 					clan = textList[2]
 					points = textList[3]
+					points = points.split("->")
+					points = points[1]
 					points = re.sub(r'[^\d.]+', '', points)
 					points.strip("[]")
 				# Temp fix, might not work
-				clan = clan.replace('.', '*')
-				clan = clan.replace('$', 'S')
+				clan = clan.replace('.', 'period5')
+				clan = clan.replace('$', 'dollar5')
+				clan = clan.replace('#', 'htag5')
+				clan = clan.replace('[', 'lbracket5')
+				clan = clan.replace('/', 'slash5')
+				clan = clan.replace(']', 'rbracket5')
+				clan = clan.replace('?', 'qmark5')
 				time = message.created_at.isoformat()
 					
 				# Set clan data, either create or update.
@@ -1059,9 +1213,17 @@ async def clanRanker():
 					'score': float(points)
 					})
 				else:
-					ref.update({
-					'score': float(points)
-					})
+					clanData = ref.get()
+					try:
+						total = clanData['wins'] + 1
+						ref.update({
+						'score': float(points),
+						'wins': total
+						})
+					except:
+						ref.update({
+						'score': float(points)
+						})
 				ref2 = db.reference('/gameData')
 				ref2.push({
 				'Map': map,
@@ -1078,225 +1240,165 @@ async def clanRanker():
 		# if message != none crashes bot if try/catch failed on message = await
 		print("An erorr occured in clanRanker, previous message null")
 		print(e)
-# OLD COMMAND VERSION, SAVED IN CASE OF ERRORS WITH NEW VERSION
-#@bot.command(pass_context = True)
-#@commands.is_owner()
-#async def clanRanker(ctx):	
-	#channel = bot.get_channel(917537295261913159)
-	#message2 = None
-	#await ctx.message.delete()
-	#await ctx.send("Clan ranks are now being tracked!")
-	#i = 0
-	#while True:
-		#i = i + 1
-		#if (i % 100) == 0:
-			#print("Loop at {0}".format(i))
-		#message = await channel.fetch_message(
-		#		channel.last_message_id)
-		#if message2 == message:
-		#	await asyncio.sleep(3)
-		#else:
-			#message2 = message
-			#text = message.content
-			#textList = text.split()
-			#if len(textList) > 4:
-			#	clan = textList[3]
-			#	points = textList[4]
-			#	points = re.sub(r'[^\d.]+', '', points)
-			#	points.strip("[]")
-			#else:
-			#	clan = textList[2]
-			#	points = textList[3]
-			#	points = re.sub(r'[^\d.]+', '', points)
-			#	points.strip("[]")
-			# Temp fix, might not work
-			#clan.replace('.', '*')
-			#
-			# Set clan data, either create or update.
-			#ref = db.reference('/780723109128962070/clans/{0}'.format(clan))
-			#if(ref.get() == None):
-			#	ref.set({
-			#	'score': float(points)
-			#	})
-			#else:
-			#	ref.update({
-			#	'score': float(points)
-			#	})
-			#await asyncio.sleep(3)
-	#print("While loop ended in clanRanker")
-#-------------------------------------------------------------------------------
-#--------------------------- Private Top 50 Clans (Updating) -------------------
-#-------------------------------------------------------------------------------	
-@bot.command(pass_context = True)
-@commands.has_permissions(administrator=True)
-async def top50clan(ctx):
-	await ctx.message.delete()
-	channel = ctx.message.channel
-	try:
-		ref = db.reference('/top50clans/{0}'.format(channel.id))
-		if ref.get() != None:
-			await ctx.send("Sorry this server already has a channel with top50 enabled. Please dm Ryo5678 to change channels.")
-		else:
-			ref = db.reference('/{0}/clans'.format(780723109128962070))
-			clanList = ref.order_by_child('score').limit_to_last(50).get()
-			clanList2 = list(clanList.items())
-			clanList2.reverse()
-			
-			ladder = discord.Embed(title="Global Clan Rankings", description="**Current Top 25**", color=0x33DDFF)
-			ladder2 = discord.Embed(title="Global Clan Rankings", description="**Current Top 25 to 50**", color=0x33DDFF)
-			# First Ladder
-			for i in range(25):
-				ladder.add_field(name="#{0} ".format(i+1) + clanList2[i][0], value=clanList2[i][1]['score'], inline=True)
-			msg = await ctx.send(embed=ladder)
-			await asyncio.sleep(2)
-			id1 = await channel.fetch_message(
-					channel.last_message_id)
-			id1 = id1.id
-			# Second Ladder
-			for i in range(25):
-				ladder2.add_field(name="#{0} ".format(i+26) + clanList2[i+25][0], value=clanList2[i+25][1]['score'], inline=True)
-			msg2 = await ctx.send(embed=ladder2)
-			await asyncio.sleep(2)
-			id2 = await channel.fetch_message(
-					channel.last_message_id)
-			id2 = id2.id
-			# Setup database entry
-			ref = db.reference('/top50clans')
-			name = '{0}'.format(channel.id)
-			ref.update({
-			name: {
-				'message': "{0}".format(id1),
-				'message2': "{0}".format(id2)
-				}
-			})
-			channel = bot.get_channel(ctx.message.channel.id)
-			top50_task = tasks.loop(count=1,reconnect=True)(top50loop)
-			top50_task.start(id,id2,channel)
-	except:
-		await ctx.send("An error occured. Please try the command again or contact Ryo5678 to fix it")
-@top50clan.error
-async def top50clan_error(ctx, error):
-	if isinstance(error, discord.ext.commands.BotMissingPermissions):
-		await ctx.send("This server does not support this command.")
-	if isinstance(error, discord.ext.commands.MissingPermissions):
-		await ctx.send("You need to be an administrator to use this command.")
-async def top50loop(message,message2,channel2):
-	check = True
-	while check:
-		await asyncio.sleep(30)
-		try:
-			ladder = discord.Embed(title="Global Clan Rankings", description="**Current Top 25**", color=0x33DDFF)
-			ladder2 = discord.Embed(title="Global Clan Rankings", description="**Current Top 25 to 50**", color=0x33DDFF)
-			
-			ref = db.reference('/{0}/clans'.format(780723109128962070))
-			clanList = ref.order_by_child('score').limit_to_last(50).get()
-			clanList2 = list(clanList.items())
-			clanList2.reverse()
-			# First Ladder Edit
-			for i in range(25):
-				ladder.add_field(name="#{0} ".format(i+1) + clanList2[i][0], value=clanList2[i][1]['score'], inline=True)
-			await message.edit(embed = ladder)
-			await asyncio.sleep(2)
-			# Second Ladder Edit
-			for i in range(25):
-				ladder2.add_field(name="#{0} ".format(i+26) + clanList2[i+25][0], value=clanList2[i+25][1]['score'], inline=True)
-			await message2.edit(embed = ladder2)
-		except Exception as e:
-			print(e)
-	await channel2.send("Error! Loop ended! Ryo5678 fix please")
+
 #-------------------------------------------------------------------------------
 #---------------------- Public Top 50 Clans (Non updating) ---------------------
 #-------------------------------------------------------------------------------	
 @bot.command(pass_context = True)
 @commands.cooldown(1, 600, commands.BucketType.user)
-async def top50(ctx):
-	try:
-		ref = db.reference('/{0}/clans'.format(780723109128962070))
-		clanList = ref.order_by_child('score').limit_to_last(50).get()
-		clanList2 = list(clanList.items())
-		clanList2.reverse()
-		ladder = discord.Embed(title="Global Clan Rankings", description="**Current Top 25**", color=0x33DDFF)
-		ladder2 = discord.Embed(title="Global Clan Rankings", description="**Current Top 25 to 50**", color=0x33DDFF)
-		# First Ladder
-		for i in range(25):
-			ladder.add_field(name="#{0} ".format(i+1) + clanList2[i][0], value=clanList2[i][1]['score'], inline=True)
-		msg = await ctx.send(embed=ladder)
-		# Second Ladder
-		for i in range(25):
-			ladder2.add_field(name="#{0} ".format(i+26) + clanList2[i+25][0], value=clanList2[i+25][1]['score'], inline=True)
-		msg2 = await ctx.send(embed=ladder2)
-	except Exception as e:
-		if isinstance(error, discord.ext.commands.BotMissingPermissions):
-			await ctx.send("This server does not support this command.")
-		else:
-			await ctx.send("An error occured. Please try the command again or contact Ryo5678 to fix it")
+async def top50(ctx):	
+	ref = db.reference('/{0}/clans'.format(780723109128962070))
+	clanList = ref.order_by_child('score').limit_to_last(50).get()
+	clanList2 = list(clanList.items())
+	clanList2.reverse()
+	# Embed disabled work around
+	#if int(ctx.guild.id) == 780723109128962070:
+	#	nonembed = ""
+	#	for i in range(50):
+	#		if i % 2 == 0:
+	#			nonembed2 = "#{0} {1} {2}   |   ".format(i+1,clanList2[i][0],clanList2[i][1]['score'])
+	#		else:
+	#			nonembed2 = "#{0} {1} {2} \n".format(i+1,clanList2[i][0],clanList2[i][1]['score'])
+	#		nonembed = nonembed + nonembed2
+	#	await ctx.send(nonembed)
+	#else:
+	ladder = discord.Embed(title=language[152], description=language[136], color=0x33DDFF)
+	ladder2 = discord.Embed(title=language[152], description=language[137], color=0x33DDFF)
+	# First Ladder
+	for i in range(25):
+		ladder.add_field(name=language[149].format(i+1) + clanList2[i][0], value=clanList2[i][1]['score'], inline=True)
+	msg = await ctx.send(embed=ladder)
+	# Second Ladder
+	for i in range(25):
+		ladder2.add_field(name=language[149].format(i+26) + clanList2[i+25][0], value=clanList2[i+25][1]['score'], inline=True)
+	msg2 = await ctx.send(embed=ladder2)
 @top50.error
 async def top50_error(ctx, error):
 	if isinstance(error, discord.ext.commands.BotMissingPermissions):
-		await ctx.send("This server does not support this command.")
+		await ctx.send(language[0])
+	if isinstance(error, discord.ext.commands.MissingPermissions):
+		try:
+			await ctx.send(language[46])
+		except:
+			print("Missing send permissions")
 	if isinstance(error, discord.ext.commands.CommandOnCooldown):
-		await ctx.send("You must wait 10 minutes from last command use.")
+		error = str(error)
+		error = error.split()
+		time = error[len(error) - 1]
+		await ctx.send(language[4].format(time))
 #-------------------------------------------------------------------------------
-#---------------------- Public Top 200 Clans (Non updating) ---------------------
+#---------------------- Public Top 25 Clans (Non updating) ---------------------
+#-------------------------------------------------------------------------------	
+@bot.command(pass_context = True)
+@commands.cooldown(1, 600, commands.BucketType.user)
+async def top25(ctx):	
+	ref = db.reference('/{0}/clans'.format(780723109128962070))
+	clanList = ref.order_by_child('score').limit_to_last(25).get()
+	clanList2 = list(clanList.items())
+	clanList2.reverse()
+	ladder = discord.Embed(title=language[152], description=language[136], color=0x33DDFF)
+	# First Ladder
+	for i in range(25):
+		ladder.add_field(name=language[149].format(i+1) + clanList2[i][0], value=clanList2[i][1]['score'], inline=True)
+	msg = await ctx.send(embed=ladder)
+@top25.error
+async def top25_error(ctx, error):
+	if isinstance(error, discord.ext.commands.BotMissingPermissions):
+		await ctx.send(language[0])
+	if isinstance(error, discord.ext.commands.MissingPermissions):
+		try:
+			await ctx.send(language[46])
+		except:
+			print("Missing send permissions")
+	if isinstance(error, discord.ext.commands.CommandOnCooldown):
+		error = str(error)
+		error = error.split()
+		time = error[len(error) - 1]
+		await ctx.send(language[4].format(time))
+#-------------------------------------------------------------------------------
+#-------------------------------  Top Override  --------------------------------
+#-------------------------------------------------------------------------------	
+@bot.command(pass_context = True)
+@commands.cooldown(1, 600, commands.BucketType.user)
+async def top(ctx):
+	await ctx.send(language[154])
+@top.error
+async def top_error(ctx, error):
+	if isinstance(error, discord.ext.commands.BotMissingPermissions):
+		await ctx.send(language[0])
+	if isinstance(error, discord.ext.commands.MissingPermissions):
+		try:
+			await ctx.send(language[46])
+		except:
+			print("Missing send permissions")
+	if isinstance(error, discord.ext.commands.CommandOnCooldown):
+		error = str(error)
+		error = error.split()
+		time = error[len(error) - 1]
+		await ctx.send(language[4].format(time))
+#-------------------------------------------------------------------------------
+#---------------------- Public Top 100 Clans (Non updating) ---------------------
 #-------------------------------------------------------------------------------	
 @bot.command(pass_context = True)
 @commands.cooldown(1, 600, commands.BucketType.user)
 async def top100(ctx):
-	try:
-		ref = db.reference('/{0}/clans'.format(780723109128962070))
-		clanList = ref.order_by_child('score').limit_to_last(100).get()
-		clanList2 = list(clanList.items())
-		clanList2.reverse()
-		ladder = discord.Embed(title="Global Clan Rankings", description="**Current Top 25**", color=0x33DDFF)
-		ladder2 = discord.Embed(title="Global Clan Rankings", description="**Current Top 26 to 50**", color=0x33DDFF)
-		ladder3 = discord.Embed(title="Global Clan Rankings", description="**Current Top 51 to 75**", color=0x33DDFF)
-		ladder4 = discord.Embed(title="Global Clan Rankings", description="**Current Top 76 to 100**", color=0x33DDFF)
-		# For top 200 clans
-		#ladder5 = discord.Embed(title="Global Clan Rankings", description="**Current Top 101 to 125**", color=0x33DDFF)
-		#ladder6 = discord.Embed(title="Global Clan Rankings", description="**Current Top 126 to 150**", color=0x33DDFF)
-		#ladder7 = discord.Embed(title="Global Clan Rankings", description="**Current Top 151 to 175**", color=0x33DDFF)
-		#ladder8 = discord.Embed(title="Global Clan Rankings", description="**Current Top 176 to 200**", color=0x33DDFF)
-		# First Ladder
-		for i in range(25):
-			ladder.add_field(name="#{0} ".format(i+1) + clanList2[i][0], value=clanList2[i][1]['score'], inline=True)
-		msg = await ctx.send(embed=ladder)
-		# Second Ladder
-		for i in range(25):
-			ladder2.add_field(name="#{0} ".format(i+26) + clanList2[i+25][0], value=clanList2[i+25][1]['score'], inline=True)
-		msg2 = await ctx.send(embed=ladder2)
-		for i in range(25):
-			ladder3.add_field(name="#{0} ".format(i+51) + clanList2[i+50][0], value=clanList2[i+50][1]['score'], inline=True)
-		msg3 = await ctx.send(embed=ladder3)
-		# Second Ladder
-		for i in range(25):
-			ladder4.add_field(name="#{0} ".format(i+76) + clanList2[i+75][0], value=clanList2[i+75][1]['score'], inline=True)
-		msg4 = await ctx.send(embed=ladder4)
-		# For top 200 clans
-		#for i in range(25):
-		#	ladder5.add_field(name="#{0} ".format(i+101) + clanList2[i+100][0], value=clanList2[i+100][1]['score'], inline=True)
-		#msg5 = await ctx.send(embed=ladder5)
-		#for i in range(25):
-		#	ladder6.add_field(name="#{0} ".format(i+126) + clanList2[i+125][0], value=clanList2[i+125][1]['score'], inline=True)
-		#msg6 = await ctx.send(embed=ladder6)
-		#for i in range(25):
-		#	ladder7.add_field(name="#{0} ".format(i+151) + clanList2[i+150][0], value=clanList2[i+150][1]['score'], inline=True)
-		#msg7 = await ctx.send(embed=ladder7)
-		#for i in range(25):
-		#	ladder8.add_field(name="#{0} ".format(i+176) + clanList2[i+175][0], value=clanList2[i+175][1]['score'], inline=True)
-		#msg8 = await ctx.send(embed=ladder8)
-	except Exception as e:
-		if isinstance(error, discord.ext.commands.BotMissingPermissions):
-			await ctx.send("This server does not support this command.")
-		else:
-			await ctx.send("An error occured. Please try the command again or contact Ryo5678 to fix it")
+	ref = db.reference('/{0}/clans'.format(780723109128962070))
+	clanList = ref.order_by_child('score').limit_to_last(100).get()
+	clanList2 = list(clanList.items())
+	clanList2.reverse()
+	ladder = discord.Embed(title=language[152], description=language[136], color=0x33DDFF)
+	ladder2 = discord.Embed(title=language[152], description=language[137], color=0x33DDFF)
+	ladder3 = discord.Embed(title=language[152], description=language[138], color=0x33DDFF)
+	ladder4 = discord.Embed(title=language[152], description=language[139], color=0x33DDFF)
+	# For top 200 clans
+	#ladder5 = discord.Embed(title="Global Clan Rankings", description="**Current Top 101 to 125**", color=0x33DDFF)
+	#ladder6 = discord.Embed(title="Global Clan Rankings", description="**Current Top 126 to 150**", color=0x33DDFF)
+	#ladder7 = discord.Embed(title="Global Clan Rankings", description="**Current Top 151 to 175**", color=0x33DDFF)
+	#ladder8 = discord.Embed(title="Global Clan Rankings", description="**Current Top 176 to 200**", color=0x33DDFF)
+	# First Ladder
+	for i in range(25):
+		ladder.add_field(name=language[149].format(i+1) + clanList2[i][0], value=clanList2[i][1]['score'], inline=True)
+	msg = await ctx.send(embed=ladder)
+	# Second Ladder
+	for i in range(25):
+		ladder2.add_field(name=language[149].format(i+26) + clanList2[i+25][0], value=clanList2[i+25][1]['score'], inline=True)
+	msg2 = await ctx.send(embed=ladder2)
+	for i in range(25):
+		ladder3.add_field(name=language[149].format(i+51) + clanList2[i+50][0], value=clanList2[i+50][1]['score'], inline=True)
+	msg3 = await ctx.send(embed=ladder3)
+	# Second Ladder
+	for i in range(25):
+		ladder4.add_field(name=language[149].format(i+76) + clanList2[i+75][0], value=clanList2[i+75][1]['score'], inline=True)
+	msg4 = await ctx.send(embed=ladder4)
+	# For top 200 clans
+	#for i in range(25):
+	#	ladder5.add_field(name="#{0} ".format(i+101) + clanList2[i+100][0], value=clanList2[i+100][1]['score'], inline=True)
+	#msg5 = await ctx.send(embed=ladder5)
+	#for i in range(25):
+	#	ladder6.add_field(name="#{0} ".format(i+126) + clanList2[i+125][0], value=clanList2[i+125][1]['score'], inline=True)
+	#msg6 = await ctx.send(embed=ladder6)
+	#for i in range(25):
+	#	ladder7.add_field(name="#{0} ".format(i+151) + clanList2[i+150][0], value=clanList2[i+150][1]['score'], inline=True)
+	#msg7 = await ctx.send(embed=ladder7)
+	#for i in range(25):
+	#	ladder8.add_field(name="#{0} ".format(i+176) + clanList2[i+175][0], value=clanList2[i+175][1]['score'], inline=True)
+	#msg8 = await ctx.send(embed=ladder8)
 @top100.error
 async def top100_error(ctx, error):
 	if isinstance(error, discord.ext.commands.BotMissingPermissions):
-		await ctx.send("This server does not support this command.")
+		await ctx.send(language[0])
+	if isinstance(error, discord.ext.commands.MissingPermissions):
+		try:
+			await ctx.send(language[46])
+		except:
+			print("Missing send permissions")
 	if isinstance(error, discord.ext.commands.CommandOnCooldown):
-		await ctx.send("You must wait 10 minutes from last command use.")
+		error = str(error)
+		error = error.split()
+		time = error[len(error) - 1]
+		await ctx.send(language[4].format(time))
 #-------------------------------------------------------------------------------
-#--------------------------- LC Events Leaderboard -----------------------------
+#--------------------- LC Events Leaderboard ---- NOT IN USE -------------------
 #-------------------------------------------------------------------------------
 @loop(seconds=30.0,count=None,reconnect=True)
 async def lcstatloop(ctx,ladder,msg):
@@ -1358,28 +1460,137 @@ async def lcstats_error(ctx, error):
 #----------------------------- Search For Clan  --------------------------------
 #-------------------------------------------------------------------------------	
 @bot.command(pass_context = True)
-@commands.cooldown(1, 30, commands.BucketType.user)
+@commands.cooldown(1, 60, commands.BucketType.user)
 async def clan(ctx,clan):
 	try:
 		clan.strip("[]")
-		clan = clan.replace('.', '*')
-		clan = clan.replace('$', 'S')
+		clan = clan.replace('.', 'period5')
+		clan = clan.replace('$', 'dollar5')
+		clan = clan.replace('#', 'htag5')
+		clan = clan.replace('[', 'lbracket5')
+		clan = clan.replace('/', 'slash5')
+		clan = clan.replace(']', 'rbracket5')
+		clan = clan.replace('?', 'qmark5')
 		clan = clan.upper()
-		ref = db.reference('/{0}/clans/{1}'.format(780723109128962070,clan))
-		clanData = ref.get()
+		ref2 = db.reference('/{0}/clans/{1}'.format(780723109128962070,clan))
+		clanData = ref2.get()
 		if (clanData == None):
-			await ctx.send("The clan {0} does not exist or is spelled/typed incorrectly.".format(clan))
+			await ctx.send(language[156].format(clan))
 		else:
+			# Set times to search back 1 week
+			timeDif = timedelta(7)
+			newTime = ctx.message.created_at
+			oldTime = newTime - timeDif
+			newTime = newTime + timedelta(1)
+			# Get all games from one week ago to present
+			ref = db.reference('gameData')
+			snapshot = ref.order_by_child('Time').start_at(str(oldTime)).end_at(str(newTime)).get()
+			snapshot = list(snapshot.items())
+			games = list()
+			for i in range(len(snapshot)):
+				if(snapshot[i][1]['Clan'] == clan):
+					games.append(snapshot[i])
+			x = len(games)
+			try:
+				# Make plot for score vs time
+				plt.xlabel(language[157])
+				plt.ylabel(language[158])
+				plt.title(language[159])
+				times = list()
+				scores = list()
+				for i in range(len(games)):
+					temp = games[i][1]['Time'].replace('T',' ')
+					try:
+						times.append(datetime.strptime(temp,"%Y-%m-%d %H:%M:%S.%f"))
+					except:
+						times.append(datetime.strptime(temp,"%Y-%m-%d %H:%M:%S"))
+					scores.append(games[i][1]['Score'])
+				plt.plot(times,scores)
+				ax = plt.gca()
+				myFmt = mdates.DateFormatter('%m/%d')
+				ax.xaxis.set_major_formatter(myFmt)
+				ax.xaxis.set_major_locator(ticker.LinearLocator(9))
+				ax.xaxis.set_minor_locator(ticker.LinearLocator(10))
+				# Save plot for discord embed
+				data_stream = io.BytesIO()
+				plt.savefig(data_stream, format='png', bbox_inches="tight", dpi = 80)
+				data_stream.seek(0)
+				chart = discord.File(data_stream,filename="plot.png")
+				# Make and send embed
+				try:
+					plot = discord.Embed(title="{0}".format(clan), description=language[160], color=0x03fcc6)
+					plot.set_image(
+					   url="attachment://plot.png"
+					)
+					await ctx.send(embed=plot, file=chart)
+				except Exception as e:
+					print("t!clan error")
+					print(e)
+					print(clan)
+				plt.clf()
+			except:
+				await ctx.send(language[161])
+			#print(games[x - 1])
+			try:
+				y = clanData['wins']
+			except:
+				snapshot2 = ref.order_by_child('Clan').equal_to(clan).get()
+				snapshot2 = list(snapshot2.items())
+				y = len(snapshot2)
+				ref2.update({
+				'wins': y
+				})
+			
+			
+			clan = clan.replace('PERIOD5', '.')
+			clan = clan.replace('DOLLAR5', '$')
+			clan = clan.replace('HTAG5', '#')
+			clan = clan.replace('LBRACKET5', '[')
+			clan = clan.replace('SLASH5', '/')
+			clan = clan.replace('RBRACKET5', ']')
+			clan = clan.replace('QMARK5', '?')
+			
 			score = clanData['score']
-			await ctx.send("The clan, {0}, has a last known score of {1}.".format(clan,score))
-	except:
-		await ctx.send("An error occured. Please try the command again or contact Ryo5678 to fix it")
+			await ctx.send(language[162].format(clan,score,x,y))
+	except Exception as e:
+		print(e)
+		# Catch missing message permission
+		try:
+			await ctx.send(language[163])
+		except:
+			try:
+				print("{0} id {1} name ".format(ctx.message.guild.id,ctx.message.guild.name))
+			except Exception as e:
+				print(e)
 @clan.error
 async def clan_error(ctx, error):
+	if isinstance(error, discord.ext.commands.BotMissingPermissions):
+		try:
+			await ctx.send(language[0])
+		except:
+			print("bot is missing message permissions")
+			try:
+				print("{0} id {1} name ".format(ctx.message.guild.id,ctx.message.guild.name))
+			except:
+				print("Guild indentify failed")
 	if isinstance(error, discord.ext.commands.MissingRequiredArgument):
-		await ctx.send("This command requires a clan, please try t!clan NAME.")
+		# Catch missing message permission
+		try:
+			await ctx.send(language[155])
+		except:
+			print("bot is missing message permissions")
 	if isinstance(error, discord.ext.commands.CommandOnCooldown):
-		await ctx.send("You must wait 30 seconds from last command use.")
+		error = str(error)
+		error = error.split()
+		time = error[len(error) - 1]
+		try:
+			await ctx.send(language[4].format(time))
+		except:
+			print("bot is missing message permissions")
+			try:
+				print("{0} id {1} name ".format(ctx.message.guild.id,ctx.message.guild.name))
+			except:
+				print("Guild indentify failed")
 #-------------------------------------------------------------------------------
 #------------------------------ Change bot status ------------------------------
 #-------------------------------------------------------------------------------	
@@ -1388,6 +1599,10 @@ async def clan_error(ctx, error):
 async def status(ctx,*,text):
 	await bot.change_presence(activity=discord.Game(name=text))
 	await ctx.message.delete()
+@status.error
+async def status_error(ctx,error):
+	if isinstance(error, discord.ext.commands.NotOwner):
+		await ctx.send(language[3])
 #-------------------------------------------------------------------------------
 #------------------------------ EMOJI DEBUG COMMAND ----------------------------
 #-------------------------------------------------------------------------------
@@ -1417,7 +1632,7 @@ async def ping(ctx):
 @ping.error
 async def ping_error(ctx, error):
 	if isinstance(error, discord.ext.commands.NotOwner):
-		await ctx.send("This command is restricted to Ryo5678 only.")
+		await ctx.send(language[3])
 #-------------------------------------------------------------------------------
 #------------------------------ SHUTDOWN COMMAND -------------------------------
 #-------------------------------------------------------------------------------
@@ -1440,7 +1655,12 @@ async def shutdown(ctx,time,*,warning):
 	# Announcement channels
 	for i in range(len(channels)):
 		channel = bot.get_channel(int(channels[i][1]))
-		await channel.send(warning)
+		# Try to send shutdown notice, catch missing send message permission
+		try:
+			await channel.send(warning)
+		except Exception as e:
+			if isinstance(error, discord.ext.commands.BotMissingPermissions):
+				print("A channel {0} has blocked updates in {1}").format(channel.id,channel.guild)
 	await asyncio.sleep(int(time))
 	for i in range(len(channels)):
 		channel = bot.get_channel(int(channels[i][1]))
@@ -1452,10 +1672,11 @@ async def shutdown_error(ctx, error):
 	if isinstance(error, discord.ext.commands.MissingRequiredArgument):
 		await ctx.send("Please enter the time (seconds) and reason. t!shutdown 10 Reboot")
 	if isinstance(error, discord.ext.commands.NotOwner):
-		await ctx.send("This command is restricted to Ryo5678 only.")	
+		await ctx.send(language[3])	
 	if isinstance(error, discord.ext.commands.BotMissingPermissions):
 		print("A channel has blocked updates")
 	print(error)
+
 @bot.command()
 @commands.is_owner()
 async def historyGrab(ctx):
@@ -1498,8 +1719,13 @@ async def historyGrab(ctx):
 				points.strip("[]")
 			#print(points)
 			# Temp fix, might not work
-			clan = clan.replace('.', '*')
-			clan = clan.replace('$', 'S')
+			clan = clan.replace('.', 'period5')
+			clan = clan.replace('$', 'dollar5')
+			clan = clan.replace('#', 'htag5')
+			clan = clan.replace('[', 'lbracket5')
+			clan = clan.replace('/', 'slash5')
+			clan = clan.replace(']', 'rbracket5')
+			clan = clan.replace('?', 'qmark5')
 			time = msg.created_at.isoformat()
 				
 			ref2 = db.reference('/gameDataHistory')
@@ -1518,10 +1744,445 @@ async def historyGrab(ctx):
 @historyGrab.error
 async def historyGrab_error(ctx, error):
 	if isinstance(error, discord.ext.commands.NotOwner):
-		await ctx.send("This command is restricted to Ryo5678 only.")	
+		await ctx.send(language[3])	
 	if isinstance(error, discord.ext.commands.BotMissingPermissions):
 		print("A channel has blocked history grab")
 #-------------------------------------------------------------------------------
+#------------------------------ SAY COMMAND -------------------------------
+#-------------------------------------------------------------------------------
+# Shutdown the bot!
+@bot.command()
+@commands.is_owner()
+async def say(ctx,*,text):
+	await ctx.message.delete()
+	
+	# Get update channels
+	ref = db.reference('/channels')
+	info = ref.get()
+	channels = list(info.items())
+	
+	# Get Image Channels
+	ref = db.reference('/imageChannels')
+	info = ref.get()
+	channels2 = list(info.items())
+	channels3 = []
+	# Image channels warning
+	for i in range(len(channels)):
+		try:
+			channels3.append(int(channels[i][1]))
+			channel = bot.get_channel(int(channels[i][1]))
+			# Check if channel still exists, if not, delete from database
+			if channel == None:
+				ref = db.reference('/channels/{0}/'.format(int(channels[i][0])))
+				ref.delete()
+			else:
+				try:
+					await channel.send(text)
+				except Exception as e:
+					if isinstance(e, discord.ext.commands.BotMissingPermissions):
+						print("A channel {0} has blocked updates in {1}").format(channel.id,channel.guild)
+		#await channel.send("Image Tracking Rebooted! You may now post again.")
+		except Exception as e:
+			if isinstance(e, discord.ext.commands.BotMissingPermissions):
+				try:
+					await channel.send("The bot does not have access to use this command here.")
+					print("A channel {0} has blocked permissions in {1}").format(channel.id,channel.guild)
+				except:
+					print("A channel {0} has blocked sending permissions in {1}").format(channel.id,channel.guild)
+			
+
+	# Announcement channels warning
+	for i in range(len(channels3)):
+		# Not fixed, still messages same channel twice!
+		if int(channels2[i][1]['channelID']) in channels3:
+			x = "Do Nothing"
+		else:
+			channel = bot.get_channel(int(channels2[i][1]['channelID']))
+			if channel == None:
+				ref = db.reference('/imageChannels/{0}/'.format(int(channels2[i][0]['channelID'])))
+				ref.delete()
+			else:
+				# Try to send message
+				try:
+					await channel.send(text)
+				except Exception as e:
+					if isinstance(e, discord.ext.commands.BotMissingPermissions):
+						print("A channel {0} has blocked updates in {1}").format(channel.id,channel.guild)
+
+@say.error
+async def say_error(ctx, error):
+	if isinstance(error, discord.ext.commands.MissingRequiredArgument):
+		await ctx.send("Please enter the time (seconds) and reason. t!shutdown 10 Reboot")
+	if isinstance(error, discord.ext.commands.NotOwner):
+		await ctx.send(language[3])
+	if isinstance(error, discord.ext.commands.BotMissingPermissions):
+		print("A channel has blocked updates")
+	print(error)
+#-------------------------------------------------------------------------------
+#------------------------------ add COMMAND -------------------------------
+#-------------------------------------------------------------------------------
+@bot.command(pass_context = True)
+@commands.cooldown(1, 30, commands.BucketType.user)
+async def add(ctx):
+	await ctx.send("Link to add: https://discord.com/api/oauth2/authorize?client_id=844800624028549120&permissions=388160&scope=bot")
+	await ctx.send("Video on bot: https://youtu.be/-wD1-BPU7Gk")
+@add.error
+async def add_error(ctx, error):
+	if isinstance(error, discord.ext.commands.BotMissingPermissions):
+		try:
+			await ctx.send(language[0])
+		except:
+			print("bot is missing message permissions")
+			try:
+				print("{0} id {1} name ".format(ctx.message.guild.id,ctx.message.guild.name))
+			except:
+				print("Guild indentify failed")
+	if isinstance(error, discord.ext.commands.MissingPermissions):
+		try:
+			await ctx.send(language[46])
+		except:
+			print("Missing send permissions")
+	if isinstance(error, discord.ext.commands.CommandOnCooldown):
+		error = str(error)
+		error = error.split()
+		time = error[len(error) - 1]
+		await ctx.send(language[4].format(time))
+		
+#-------------------------------------------------------------------------------
+#------------------------------ LCEVENTSTATS COMMAND -------------------------------
+#-------------------------------------------------------------------------------
+@bot.command(pass_context = True)
+@commands.cooldown(1, 30, commands.BucketType.user)
+async def lc(ctx):
+	# Get pdf from database
+	
+	# Attatch pdf to discord message
+	
+	# Post to channel
+	await ctx.send("LC Event Stats",file=discord.File("StatisticsLCEvent.pdf"))
+@lc.error
+async def lc_error(ctx, error):
+	if isinstance(error, discord.ext.commands.BotMissingPermissions):
+		try:
+			await ctx.send(language[0])
+		except:
+			print("bot is missing message permissions")
+			try:
+				print("{0} id {1} name ".format(ctx.message.guild.id,ctx.message.guild.name))
+			except:
+				print("Guild indentify failed")
+	if isinstance(error, discord.ext.commands.MissingPermissions):
+		try:
+			await ctx.send(language[46])
+		except:
+			print("Missing send permissions")
+	if isinstance(error, discord.ext.commands.CommandOnCooldown):
+		error = str(error)
+		error = error.split()
+		time = error[len(error) - 1]
+		await ctx.send(language[4].format(time))
+#-------------------------------------------------------------------------------
+#------------------------------ Compare Clans Command --------------------------
+#-------------------------------------------------------------------------------
+@bot.command(pass_context = True)
+@commands.cooldown(1, 600, commands.BucketType.user)
+async def compare(ctx,*,clans):
+	#if (ctx.message.guild.id == 780723109128962070):
+	#	await ctx.send("This server does not support this command. Please ask the administrator(s) to assign embed permissions")
+	#	return
+	#else:
+	plt.clf()
+	await ctx.send("This command processes large amounts of data, please be patient.")
+	clanList = clans.split()
+	if len(clanList) > 5:
+		await ctx.send("Maximum clans is 5, please try again.")
+		await compare.reset_cooldown(ctx)
+		return
+	# Set times to search back 1 week
+	timeDif = timedelta(10)
+	newTime = ctx.message.created_at
+	oldTime = newTime - timeDif
+	newTime = newTime + timedelta(1)
+	# Make plot for score vs time
+	plt.xlabel("Time")
+	plt.ylabel("Score")
+	plt.title("Score over last 10 days.")
+	ax = plt.gca()
+	myFmt = mdates.DateFormatter('%m/%d')
+	ax.xaxis.set_major_formatter(myFmt)
+	ax.xaxis.set_major_locator(ticker.LinearLocator(9))
+	ax.xaxis.set_minor_locator(ticker.LinearLocator(10))
+	# Loop through each clan name given
+	for clan in clanList:
+		try:
+			clan.strip("[]")
+			clan = clan.replace('.', 'period5')
+			clan = clan.replace('$', 'dollar5')
+			clan = clan.replace('#', 'htag5')
+			clan = clan.replace('[', 'lbracket5')
+			clan = clan.replace('/', 'slash5')
+			clan = clan.replace(']', 'rbracket5')
+			clan = clan.replace('?', 'qmark5')
+			clan = clan.upper()
+			ref = db.reference('/{0}/clans/{1}'.format(780723109128962070,clan))
+			clanData = ref.get()
+			if (clanData == None):
+				await ctx.send("The clan {0} does not exist or is spelled/typed incorrectly.".format(clan))
+				await compare.reset_cooldown(ctx)
+				return
+			else:
+				# Get all games from one week ago to present
+				ref = db.reference('gameData')
+				snapshot = ref.order_by_child('Time').start_at(str(oldTime)).end_at(str(newTime)).get()
+				snapshot = list(snapshot.items())
+				games = list()
+				for i in range(len(snapshot)):
+					if(snapshot[i][1]['Clan'] == clan):
+						games.append(snapshot[i])
+				
+				times = list()
+				scores = list()
+				# Plot lines
+				for i in range(len(games)):
+					temp = games[i][1]['Time'].replace('T',' ')
+					try:
+						times.append(datetime.strptime(temp,"%Y-%m-%d %H:%M:%S.%f"))
+					except:
+						times.append(datetime.strptime(temp,"%Y-%m-%d %H:%M:%S"))
+					scores.append(games[i][1]['Score'])
+				plt.plot(times,scores,label=clan)
+		except Exception as e:
+			print(e)
+			await ctx.send("An error occured. Please try the command again or contact Ryo5678 to fix it")
+			await compare.reset_cooldown(ctx)
+			return
+	try:
+		plt.legend(loc="upper right")
+		# Save plot for discord embed
+		data_stream = io.BytesIO()
+		plt.savefig(data_stream, format='png', bbox_inches="tight", dpi = 80)
+		data_stream.seek(0)
+		chart = discord.File(data_stream,filename="plot.png")
+		# Make and send embed
+		plot = discord.Embed(title="{0}".format(clans), description="**Score over 10 days**", color=0x03fcc6)
+		plot.set_image(
+		   url="attachment://plot.png"
+		)
+		await ctx.send(embed=plot, file=chart)
+		plt.clf()
+	except Exception as e:
+			print(e)
+			print("Test")
+			await ctx.send("An error occured. Please try the command again or contact Ryo5678 to fix it")
+@compare.error
+async def compare_error(ctx, error):
+	if isinstance(error, discord.ext.commands.MissingRequiredArgument):
+		await ctx.send("This command requires a clan, please try t!compare NAME NAME.")
+	if isinstance(error, discord.ext.commands.CommandOnCooldown):
+		error = str(error)
+		error = error.split()
+		time = error[len(error) - 1]
+		await ctx.send("You must wait {0} from last command use.".format(time))
+		
+#-------------------------------------------------------------------------------
+#------------------------------ SCOPE COMMAND ---------------------------
+#-------------------------------------------------------------------------------		
+@bot.command(pass_context = True)
+@commands.is_owner()
+async def scope(ctx):
+	# Check if all users still in scope
+	try:
+		# Retrieve user id list stored by bot
+		users = []
+		ref = db.reference('/userIDs')
+		snapshot = ref.get()
+		for key in snapshot:
+			users.append(key)
+		# Retrieve user list bot can get from discord
+		for guild in bot.guilds:
+			print(guild)
+			for member in guild.members:
+				#print(member.id)
+				if str(member.id) in users:
+					# If user has rejoined scope, update to True
+					ref = db.reference('/userIDs/{0}/time'.format(str(member.id)))
+					ref.delete()
+					ref = db.reference('/userIDs/{0}'.format(str(member.id)))
+					ref.update({
+					'scope': True
+					})
+					# Remove user from list
+					users.remove(str(member.id))
+		# Update database user list to reflect users no longer in discord scope
+		print(len(users))
+		for i in range(len(users)):
+			ref = db.reference('/userIDs/{0}'.format(users[i]))
+			ref.update({
+			'scope': False,
+			'time': str(datetime.now())
+			})
+	except Exception as e:
+		print("Scope check error")
+		print(e)
+	# Remove users who have been outside scope for 30 days
+	try:
+		# Get times
+		timeDif = timedelta(30)
+		cTime = datetime.now() - timeDif
+		ref = db.reference('userIDs')
+		snapshot = ref.order_by_child('scope').equal_to(False).get()
+		users = list(snapshot.items())
+		
+		# Compare times
+		for i in range(len(users)):
+			if datetime.strptime(users[i][1]['time'],"%Y-%m-%d %H:%M:%S.%f") < cTime:
+				# Remove user if time exceeds 30 days**
+				ref = db.reference('/userIDs/{0}'.format(users[i][0]))
+				ref.delete()
+				ref = db.reference('/users/{0}'.format(users[i][0]))
+				ref.delete()
+				print("User {0} deleted from system".format(users[i][0]))
+	except Exception as e:
+		print("Error in user data removal")
+		print(e)
+#-------------------------------------------------------------------------------
+#------------------------------ DATA REMOVAL COMMAND ---------------------------
+#-------------------------------------------------------------------------------
+@bot.command(pass_context = True)
+@commands.cooldown(1, 600, commands.BucketType.user)
+async def data(ctx):
+	ref = db.reference('/users/{0}/'.format(ctx.author.id))
+	ref.delete()
+@data.error
+async def data(ctx, error):
+	if isinstance(error, discord.ext.commands.BotMissingPermissions):
+		x = "do nothing"
+	if isinstance(error, discord.ext.commands.CommandOnCooldown):
+		await ctx.send("You must wait 10 minutes from last command use.")
+#-------------------------------------------------------------------------------
+#------------------------- OPT IN AND OUT OF DATA STORAGE ----------------------
+#-------------------------------------------------------------------------------
+@bot.command(pass_context = True)
+@commands.cooldown(1, 1800, commands.BucketType.user)
+async def disable(ctx):
+	user = ctx.message.author.id
+	opt = db.reference('/users/{0}/opt'.format(user))
+	if (opt.get() == True):
+		await ctx.send("You already have message content storage disabled. This is used to track your clan wins. To opt in, use the t!enable command")
+		return
+	ref = db.reference('/users/{0}'.format(ctx.author.id))
+	ref.update({
+	'opt': True
+	})
+	await ctx.send("You have opted out of message content storage. This will prevent you from tracking your win count. Use t!enable to re-enable this.")
+	
+@disable.error
+async def disable(ctx, error):
+	if isinstance(error, discord.ext.commands.BotMissingPermissions):
+		x = "do nothing"
+	if isinstance(error, discord.ext.commands.CommandOnCooldown):
+		await ctx.send("You must wait 10 minutes from last command use.")
+		
+@bot.command(pass_context = True)
+@commands.cooldown(1, 1800, commands.BucketType.user)
+async def enable(ctx):
+	user = ctx.message.author.id
+	opt = db.reference('/users/{0}/opt'.format(user))
+	if (opt.get() == False):
+		await ctx.send("You already have message content storage enabled. This is used to track your clan wins. To opt out, use the t!disable command")
+		return
+	ref = db.reference('/users/{0}/opt'.format(ctx.author.id))
+	ref.update({
+	'opt': False
+	})
+	await ctx.send("You have opted into the the storage of message content. This will let you track your win count. Use t!disable to change this.")
+@enable.error
+async def enable(ctx, error):
+	if isinstance(error, discord.ext.commands.BotMissingPermissions):
+		x = "do nothing"
+	if isinstance(error, discord.ext.commands.CommandOnCooldown):
+		await ctx.send("You must wait 10 minutes from last command use.")
+#-------------------------------------------------------------------------------
+#------------------------------- Donate link command ---------------------------
+#-------------------------------------------------------------------------------
+@bot.command(pass_context = True)
+@commands.cooldown(1, 180, commands.BucketType.user)
+async def donate(ctx):
+	try:
+		await ctx.send("Donate to support the bots existence and growth. https://www.patreon.com/Ryo5678")
+	except:
+		print(ctx.message.guild.id + ctx.message.guild.name + " guild id and name, no send permissions")
+@donate.error
+async def donate(ctx, error):
+	if isinstance(error, discord.ext.commands.BotMissingPermissions):
+		x = "do nothing"
+	if isinstance(error, discord.ext.commands.CommandOnCooldown):
+		await ctx.send("You must wait 10 minutes from last command use.")
+		
+################################################################################
+#---------------------------- DISCONTINUED COMMANDS-----------------------------
+#-------------------------------------------------------------------------------
+#----------------------- CLAN RATED LEADERBOARD COMMAND ------------------------
+#-------------------------------------------------------------------------------
+@bot.command(pass_context = True)
+@commands.is_owner()
+async def leaderboard(ctx):
+	check = True
+	await ctx.message.delete()
+	guild = ctx.message.guild.id
+	guild = bot.get_guild(guild)
+	board = discord.Embed(title="{0} Leaderboard".format(guild.name), description="**Current Top 10**", color=0xa81207)
+	board.add_field(name="ðŸ¥‡**1st Place**ðŸ¥‡", value="test", inline=False)
+	board.add_field(name="ðŸ¥ˆ**2nd Place**ðŸ¥ˆ", value="test", inline=False)
+	board.add_field(name="ðŸ¥‰**3rd Place**ðŸ¥‰", value="test", inline=False)
+	board.add_field(name="ðŸ…**4th and 5th**ðŸ…", value="test", inline=False)
+	board.add_field(name="ðŸŽ–ï¸**6th to 10thðŸŽ–ï¸**", value="test", inline=False)
+	timestamp = datetime.now()
+	board.add_field(name="\u200b",value="Last refreshed at " + timestamp.strftime(r"%I:%M %p") + " EST",inline=False)
+	msg = await ctx.send(embed=board)
+	while check:
+		boardRef = db.reference('/{0}/users'.format(guild.id))
+		boardList = boardRef.order_by_child('leaderboard').limit_to_last(10).get()
+		cL = list(boardList.items())
+		cL.reverse()
+		max = 10
+		y = len(cL)
+		if y <= 10:
+			max = max - y
+		for x in range(max):
+			cL.append(["None",{'leaderboard':0}])
+		cL.reverse()
+		
+		bL = [[0 for x in range(2)] for y in range(10)]
+		for x in range(10):
+			bL[x][1] = cL[x][1]
+			if cL[x][0] is not "None":
+				temp = cL[x][0]
+			try:
+				bL[x][0] = ((await guild.fetch_member(temp)).nick)
+			except:
+				ref = db.reference('/{0}/users/{1}/leaderboard'.format(guild.id,temp))
+				ref.delete()
+				check = False
+			if bL[x][0] is None:
+				bL[x][0] = (await guild.fetch_member(temp)).name
+		board.set_field_at(0,name="ðŸ¥‡**1st Place**ðŸ¥‡", value="{0} - {1} wins".format(bL[9][0],bL[9][1]['leaderboard']), inline=False)
+		board.set_field_at(1,name="ðŸ¥ˆ**2nd Place**ðŸ¥ˆ", value="{0} - {1} wins".format(bL[8][0],bL[8][1]['leaderboard']), inline=False)
+		board.set_field_at(2,name="ðŸ¥‰**3rd Place**ðŸ¥‰", value="{0} - {1} wins".format(bL[7][0],bL[7][1]['leaderboard']), inline=False)
+		board.set_field_at(3,name="ðŸ…**4th and 5th**ðŸ…", value="{0} - {1} wins \n{2} - {3} wins \n".format(bL[6][0],bL[6][1]['leaderboard'],bL[5][0],bL[5][1]['leaderboard']), inline=False)
+		board.set_field_at(4,name="ðŸŽ–ï¸**6th to 10thðŸŽ–ï¸**", value="{0} - {1} wins \n{2} - {3} wins \n{4} - {5} wins \n{6} - {7} wins \n{8} - {9} wins \n".format(bL[4][0],bL[4][1]['leaderboard'],bL[3][0],bL[3][1]['leaderboard'],bL[2][0],bL[2][1]['leaderboard'],bL[1][0],bL[1][1]['leaderboard'],bL[0][0],bL[0][1]['leaderboard']), inline=False)
+		timestamp = datetime.now()
+		board.set_field_at(5,name="\u200b",value="Last refreshed at " + timestamp.strftime(r"%I:%M %p"),inline=False)
+		await msg.edit(embed = board)
+		await asyncio.sleep(900)
+	check = True
+@leaderboard.error
+async def leaderboard_error(ctx, error):
+	if isinstance(error, discord.ext.commands.NotOwner):
+		await ctx.send(language[3])	
+	if isinstance(error, discord.ext.commands.BotMissingPermissions):
+		print(language[0])
+#-------------------------------------------------------------------------------
 #------------------------------- RUN LINE --------------------------------------
 #-------------------------------------------------------------------------------
-bot.run('TOKEN GOES HERE', bot=True, reconnect=True)
+bot.run('Bot Token Goes Here', bot=True, reconnect=True)
