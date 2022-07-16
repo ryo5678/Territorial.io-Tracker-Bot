@@ -1,4 +1,4 @@
-import discord, random, math, asyncio, firebase_admin, requests, io, re, datetime, os, cv2, discord.utils, subprocess
+import discord, random, math, asyncio, firebase_admin, requests, io, re, datetime, os, cv2, discord.utils, subprocess, statistics
 from discord.ext import commands
 from discord.ext.commands import bot, Cog
 from firebase_admin import credentials
@@ -8,6 +8,7 @@ from discord.ext import tasks
 from discord.ext.tasks import loop
 from discord.utils import get
 from datetime import datetime, timedelta
+from collections import defaultdict
 owner_id = 138752093308583936
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -20,39 +21,48 @@ from pytesseract import pytesseract
 import numpy as np
 from matplotlib import pyplot as plt, ticker as ticker, dates as mdates
 from discord.ext.commands import CommandNotFound, MissingPermissions, MessageNotFound, NotOwner, BotMissingPermissions, CommandOnCooldown
-path_to_tesseract = r"Tesseract.exe location here"
+path_to_tesseract = r"Tesseract.exe path"
 #from threading import Thread
 intents = discord.Intents.default()
 intents.messages = True
 intents.members = True
 
+
 creds = service_account.Credentials.from_service_account_file(
-    'Google credentials json here')
+    'GoogleCredentialsFile.json')
 
 
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
 # The ID and range of a sample spreadsheet.
-SPREADSHEET_ID = 'Google sheets ID here'
+SPREADSHEET_ID = 'Google Sheets ID'
 RANGE_NAME = 'A2'
 
 bot = commands.Bot(command_prefix="t!", case_insensitive=True, activity=discord.Game(name="t!help for commands"), status=discord.Status.online,help_command=None,intents=intents)
 
 
 # List of removeWins admins
-winAdmins = ((138752093308583936,"ELITE"),(524835935276498946,"ELITE"),(746381696139788348,"ISLAM"),(735145539494215760,"ISLAM"))
+winAdmins = ((138752093308583936,"ELITE"),(524835935276498946,"ELITE"),(746381696139788348,"ISLAM"),(735145539494215760,"ISLAM"),(514953130178248707,"RL"))
 	
 database_url = "Firebase URL"
 
-cred = firebase_admin.credentials.Certificate('Firebase credentials json here')
+cred = firebase_admin.credentials.Certificate('FirebaseCredentialsFile.json')
 databaseApp = firebase_admin.initialize_app(cred, { 'databaseURL' : database_url})
+
+textfile = open('ru-strings.txt', 'r', encoding="utf8")
+russian = textfile.read().splitlines()
+textfile.close()
 
 textfile = open('en-strings.txt', 'r')
 english = textfile.read().splitlines()
 textfile.close()
 
-textfile = open('fr-strings.txt', 'r')
+textfile = open('fr-strings.txt', 'r', encoding="utf8")
 french = textfile.read().splitlines()
+textfile.close()
+
+textfile = open('tr-strings.txt', 'r', encoding="utf8")
+turkish = textfile.read().splitlines()
 textfile.close()
 
 #global message3
@@ -154,6 +164,10 @@ async def joinEvent(ctx):
 		language = french
 	if ref2.get() == "english":
 		language = english
+	if ref2.get() == "russian":
+		language = russian
+	if ref2.get() == "turkish":
+		language = turkish
 	if ref2.get() == None:
 		language = english
 	# Gather discord user and server information
@@ -216,6 +230,10 @@ async def ahelp(ctx):
 		c = "\u00e7"
 	if ref2.get() == "english":
 		language = english
+	if ref2.get() == "russian":
+		language = russian
+	if ref2.get() == "turkish":
+		language = turkish
 	if ref2.get() == None:
 		language = english
 	sheet = discord.Embed(title=language[5], description=language[6], color=0x0000FF)
@@ -251,6 +269,10 @@ async def help(ctx):
 		c = "\u00e7"
 	if ref2.get() == "english":
 		language = english
+	if ref2.get() == "russian":
+		language = russian
+	if ref2.get() == "turkish":
+		language = turkish
 	if ref2.get() == None:
 		language = english
 	sheet2 = discord.Embed(title=language[47], description=language[48], color=0x0000FF)
@@ -294,6 +316,10 @@ async def setup(ctx):
 		c = "\u00e7"
 	if ref2.get() == "english":
 		language = english
+	if ref2.get() == "russian":
+		language = russian
+	if ref2.get() == "turkish":
+		language = turkish
 	if ref2.get() == None:
 		language = english
 	await ctx.send(language[79] + '\n' + language[80] + '\n' + language[81])
@@ -361,6 +387,10 @@ async def imagelooper(channel):
 				s = "\u00e0"
 			if ref2.get() == "english":
 				language = english
+			if ref2.get() == "russian":
+				language = russian
+			if ref2.get() == "turkish":
+				language = turkish
 			if ref2.get() == None:
 				language = english
 			#except Exception as e:
@@ -478,6 +508,7 @@ async def imagelooper(channel):
 									points2 = points2.split("x")
 									points2 = points2[0]
 									points2 = points2.strip(" ")
+									points2 = points2.strip('.')
 									points2 = int(points2)
 									points2 = points2 * 2
 								else:
@@ -495,7 +526,11 @@ async def imagelooper(channel):
 									mRef.update({
 									'lastMessage': str(message.id)
 									})
-									os.remove(attachment.filename)
+									try:
+										os.remove(attachment.filename)
+									except Exception as e:
+										print("Os.remove error")
+										print(e)
 									return
 								else:
 									#wins = 0
@@ -595,6 +630,7 @@ async def imagelooper(channel):
 										mRef.update({
 										'lastMessage': str(message.id)
 										})
+										os.remove(attachment.filename)
 										await channel.send(language[110].format(user,wins,a))
 										if(message.guild.id == 900982253679702036) and (clan.lower() == "elite"):
 											try:
@@ -655,6 +691,12 @@ async def imageTrack(ctx):
 		j = "\u00ee"
 	if ref2.get() == "english":
 		language = english
+	if ref2.get() == "russian":
+		language = russian
+	if ref2.get() == "turkish":
+		language = turkish
+	if ref2.get() == None:
+		language = english
 	guild = ctx.message.guild.id
 	ref = db.reference('/imageChannels/{0}'.format(guild))
 	if ref.get() != None:
@@ -692,6 +734,10 @@ async def updates(ctx):
 		j = "\u00ee"
 	if ref2.get() == "english":
 		language = english
+	if ref2.get() == "russian":
+		language = russian
+	if ref2.get() == "turkish":
+		language = turkish
 	if ref2.get() == None:
 		language = english
 	guild = ctx.message.guild.id
@@ -724,6 +770,10 @@ async def setSolo(ctx,elo):
 		j = "\u00ee"
 	if ref2.get() == "english":
 		language = english
+	if ref2.get() == "russian":
+		language = russian
+	if ref2.get() == "turkish":
+		language = turkish
 	if ref2.get() == None:
 		language = english
 	guild = ctx.message.guild.id
@@ -833,18 +883,23 @@ async def setclan(ctx,name):
 #------------------------------ Remove Clan Wins ----------------------------
 #-------------------------------------------------------------------------------	
 @bot.command(pass_context = True)
-async def removeWins(ctx,user,wins):
+async def removeWins(ctx,name: discord.Member,wins):
 	# Get/Set Language
-	user = ctx.message.author.id
+	user = name.id
+	user2 = ctx.message.author.id
 	a = ''
 	s = ''
-	ref2 = db.reference('/users/{0}/lang'.format(user))
+	ref2 = db.reference('/users/{0}/lang'.format(user2))
 	if ref2.get() == "french":
 		language = french
 		a = "\u00e8"
 		s = "\u00e0"
 	if ref2.get() == "english":
 		language = english
+	if ref2.get() == "russian":
+		language = russian
+	if ref2.get() == "turkish":
+		language = turkish
 	if ref2.get() == None:
 		language = english
 	# Assign/Retrieve command caller ID
@@ -901,6 +956,10 @@ def profileDisplay(ctx,user,username):
 		language = french
 	if ref2.get() == "english":
 		language = english
+	if ref2.get() == "russian":
+		language = russian
+	if ref2.get() == "turkish":
+		language = turkish
 	if ref2.get() == None:
 		language = english
 	# Get user ID
@@ -1060,7 +1119,7 @@ async def profile(ctx, name: discord.Member = None):
 
 
 @bot.command(pass_context = True)
-@commands.cooldown(1, 7200, commands.BucketType.user)
+@commands.cooldown(1, 3600, commands.BucketType.user)
 async def clanboard(ctx,clan):
 	# Get/Set Language
 	user = ctx.message.author.id
@@ -1073,6 +1132,10 @@ async def clanboard(ctx,clan):
 		s = "\u00e0"
 	if ref2.get() == "english":
 		language = english
+	if ref2.get() == "russian":
+		language = russian
+	if ref2.get() == "turkish":
+		language = turkish
 	if ref2.get() == None:
 		language = english
 	try:
@@ -1187,11 +1250,15 @@ async def clanboard(ctx,clan):
 @loop(seconds=30,count=None,reconnect=True)
 async def sololoop(ctx,clan,l):
 	try:
+		a = ''
 		if (l == "french"):
 			a = "\u00e8"
 			language = french
+		elif (l == "russian"):
+			language = russian
+		elif (l == "turkish"):
+			language = turkish
 		else:
-			a = ''
 			language = english
 		ref = db.reference('/users')
 		refList = ref.order_by_child('onevsone').limit_to_last(25).get()
@@ -1220,6 +1287,12 @@ async def soloboard(ctx,clan):
 	if ref2.get() == "english":
 		l = "english"
 		language = english
+	if ref2.get() == "russian":
+		l = "russian"
+		language = russian
+	if ref2.get() == "turkish":
+		l = "turkish"
+		language = turkish
 	if ref2.get() == None:
 		l = "english"
 		language = english
@@ -1242,6 +1315,10 @@ async def oneboard(ctx,x):
 		c = "\u00e7"
 	if ref2.get() == "english":
 		language = english
+	if ref2.get() == "russian":
+		language = russian
+	if ref2.get() == "turkish":
+		language = turkish
 	if ref2.get() == None:
 		language = english
 	try:
@@ -1333,8 +1410,16 @@ async def clanRanker():
 			text2 = textList[0].split()
 			if len(text2) == 2:
 				map = text2[0] + text2[1]
+				try:
+					map.strip("**")
+				except:
+					print("Error in clanR")
 			else:
 				map = text2[0]
+				try:
+					map.strip("**")
+				except:
+					print("Error in clanR")
 			# Set Players
 			players = textList[1]
 			# Set clan
@@ -1404,6 +1489,10 @@ async def top50(ctx):
 		s = "\u00e0"
 	if ref2.get() == "english":
 		language = english
+	if ref2.get() == "russian":
+		language = russian
+	if ref2.get() == "turkish":
+		language = turkish
 	if ref2.get() == None:
 		language = english
 	ref = db.reference('/{0}/clans'.format(780723109128962070))
@@ -1444,6 +1533,10 @@ async def top25(ctx):
 		language = french
 	if ref2.get() == "english":
 		language = english
+	if ref2.get() == "russian":
+		language = russian
+	if ref2.get() == "turkish":
+		language = turkish
 	if ref2.get() == None:
 		language = english
 	ref = db.reference('/{0}/clans'.format(780723109128962070))
@@ -1468,6 +1561,10 @@ async def top(ctx):
 		language = french
 	if ref2.get() == "english":
 		language = english
+	if ref2.get() == "russian":
+		language = russian
+	if ref2.get() == "turkish":
+		language = turkish
 	if ref2.get() == None:
 		language = english
 	await ctx.send(language[154])
@@ -1487,6 +1584,10 @@ async def top100(ctx):
 		s = "\u00e0"
 	if ref2.get() == "english":
 		language = english
+	if ref2.get() == "russian":
+		language = russian
+	if ref2.get() == "turkish":
+		language = turkish
 	if ref2.get() == None:
 		language = english
 	ref = db.reference('/{0}/clans'.format(780723109128962070))
@@ -1550,6 +1651,10 @@ async def clan(ctx,clan):
 		j = "\u00ee"
 	if ref2.get() == "english":
 		language = english
+	if ref2.get() == "russian":
+		language = russian
+	if ref2.get() == "turkish":
+		language = turkish
 	if ref2.get() == None:
 		language = english
 	try:
@@ -1814,6 +1919,10 @@ async def add(ctx):
 		c = "\u00e7"
 	if ref2.get() == "english":
 		language = english
+	if ref2.get() == "russian":
+		language = russian
+	if ref2.get() == "turkish":
+		language = turkish
 	if ref2.get() == None:
 		language = english
 	await ctx.send(language[166])
@@ -1838,6 +1947,10 @@ async def lc(ctx):
 		c = "\u00e7"
 	if ref2.get() == "english":
 		language = english
+	if ref2.get() == "russian":
+		language = russian
+	if ref2.get() == "turkish":
+		language = turkish
 	if ref2.get() == None:
 		language = english
 	# Post to channel
@@ -1850,34 +1963,31 @@ async def lc(ctx):
 async def compare(ctx,*,clans):
 	# Get/Set Language
 	user = ctx.message.author.id
-	a = ''
-	c = ''
-	s = ''
-	j = ''
 	ref2 = db.reference('/users/{0}/lang'.format(user))
 	if ref2.get() == "french":
 		language = french
-		a = "\u00e8"
-		c = "\u00e7"
-		s = "\u00e0"
-		j = "\u00ee"
+
 	if ref2.get() == "english":
 		language = english
+	if ref2.get() == "russian":
+		language = russian
+	if ref2.get() == "turkish":
+		language = turkish
 	if ref2.get() == None:
 		language = english
-	#if (ctx.message.guild.id == 780723109128962070):
-	#	await ctx.send("This server does not support this command. Please ask the administrator(s) to assign embed permissions")
-	#	return
-	#else:
 	plt.clf()
-	await ctx.send("This command processes large amounts of data, please be patient.")
+	await ctx.send(language[3])
 	clanList = clans.split()
+	if len(clanList) < 2:
+		await ctx.send("Minimum clans is 2, please try again.")
+		await compare.reset_cooldown(ctx)
+		return
 	if len(clanList) > 5:
 		await ctx.send("Maximum clans is 5, please try again.")
 		await compare.reset_cooldown(ctx)
 		return
 	# Set times to search back 1 week
-	timeDif = timedelta(10)
+	timeDif = timedelta(9)
 	newTime = ctx.message.created_at
 	oldTime = newTime - timeDif
 	newTime = newTime + timedelta(1)
@@ -1891,6 +2001,16 @@ async def compare(ctx,*,clans):
 	ax.xaxis.set_major_locator(ticker.LinearLocator(9))
 	ax.xaxis.set_minor_locator(ticker.LinearLocator(10))
 	# Loop through each clan name given
+	b = 1
+	pF = 0
+	pS = 0
+	mF = ''
+	mS = ''
+	gF = 0
+	gS = 0
+	ref = db.reference('gameData')
+	snapshot = ref.order_by_child('Time').start_at(str(oldTime)).end_at(str(newTime)).get()
+	snapshot = list(snapshot.items())
 	for clan in clanList:
 		try:
 			clan.strip("[]")
@@ -1909,25 +2029,48 @@ async def compare(ctx,*,clans):
 				await compare.reset_cooldown(ctx)
 				return
 			else:
-				# Get all games from one week ago to present
-				ref = db.reference('gameData')
-				snapshot = ref.order_by_child('Time').start_at(str(oldTime)).end_at(str(newTime)).get()
-				snapshot = list(snapshot.items())
 				games = list()
+				# Get all games from one week ago to present
 				for i in range(len(snapshot)):
 					if(snapshot[i][1]['Clan'] == clan):
 						games.append(snapshot[i])
-				
+				count = len(games)
 				times = list()
 				scores = list()
+				maps = list()
+				players = list()
 				# Plot lines
-				for i in range(len(games)):
+				for i in range(count):
+					temp2 = defaultdict(int)
 					temp = games[i][1]['Time'].replace('T',' ')
 					try:
 						times.append(datetime.strptime(temp,"%Y-%m-%d %H:%M:%S.%f"))
 					except:
 						times.append(datetime.strptime(temp,"%Y-%m-%d %H:%M:%S"))
 					scores.append(games[i][1]['Score'])
+					try:
+						maps.append(games[i][1]['Map'])
+					except:
+						print(games[i][1]['Map'])
+					try:
+						players.append(int(games[i][1]['Players']))
+					except:
+						print(games[i][1]['Players'])
+				if(b == 1):
+					pF = int(statistics.mean(players))
+					for map in maps:
+						for name in map.split():
+							temp2[name] += 1
+					mF = max(temp2, key=temp2.get)
+					gF = count
+				elif(b == 2):
+					pS = int(statistics.mean(players))
+					for map in maps:
+						for name in map.split():
+							temp2[name] += 1
+					mS = max(temp2, key=temp2.get)
+					gS = count
+				b += 1
 				plt.plot(times,scores,label=clan)
 		except Exception as e:
 			print(e)
@@ -1947,6 +2090,14 @@ async def compare(ctx,*,clans):
 		   url="attachment://plot.png"
 		)
 		await ctx.send(embed=plot, file=chart)
+		try:
+			await ctx.send(language[4].format(clanList[0],pF,mF,gF))
+			await ctx.send(language[4].format(clanList[1],pS,mS,gS))
+		except Exception as e:
+			print("t!compare")
+			print(e)
+			print(ctx.message.guild.name)
+			print(ctx.message.guild.id)
 		plt.clf()
 	except Exception as e:
 			print(e)
@@ -2049,6 +2200,12 @@ async def disable(ctx):
 		j = "\u00ee"
 	if ref2.get() == "english":
 		language = english
+	if ref2.get() == "russian":
+		language = russian
+	if ref2.get() == "turkish":
+		language = turkish
+	if ref2.get() == None:
+		language = english
 
 	# Check for existing opt status
 	opt = db.reference('/users/{0}/opt'.format(user))
@@ -2079,6 +2236,12 @@ async def enable(ctx):
 		j = "\u00ee"
 	if ref2.get() == "english":
 		language = english
+	if ref2.get() == "russian":
+		language = russian
+	if ref2.get() == "turkish":
+		language = turkish
+	if ref2.get() == None:
+		language = english
 	# Check for existing opt status
 	opt = db.reference('/users/{0}/opt'.format(user))
 	if (opt.get() == False):
@@ -2096,6 +2259,19 @@ async def enable(ctx):
 @bot.command(pass_context = True)
 @commands.cooldown(1, 180, commands.BucketType.user)
 async def donate(ctx):
+	# Get/Set Language
+	user = ctx.message.author.id
+	ref2 = db.reference('/users/{0}/lang'.format(user))
+	if ref2.get() == "french":
+		language = french
+	if ref2.get() == "english":
+		language = english
+	if ref2.get() == "russian":
+		language = russian
+	if ref2.get() == "turkish":
+		language = turkish
+	if ref2.get() == None:
+		language = english
 	try:
 		await ctx.send(language[174])
 	except:
@@ -2107,7 +2283,7 @@ async def donate(ctx):
 @commands.cooldown(1, 30, commands.BucketType.user)
 async def setlanguage(ctx, lang):
 	# List of accepted languages
-	languages = ['english','french']
+	languages = ['english','french','russian','turkish']
 	a = ''
 	c = ''
 	# Get user ID
@@ -2143,9 +2319,9 @@ async def setlanguage(ctx, lang):
 			lang = lang.lower()
 			if lang not in languages:
 				try:
-					return await ctx.send(language[165].format(a))
+					return await ctx.send(language[165])
 				except:
-					return await ctx.author.send(language[165].format(a))
+					return await ctx.author.send(language[165])
 			# Update language setting in database
 			ref.update({
 			'lang': lang
@@ -2160,21 +2336,29 @@ async def setlanguage(ctx, lang):
 				c = "\u00e7"
 			if ref2.get() == "english":
 				language = english
+			if ref2.get() == "russian":
+				language = russian
+			if ref2.get() == "turkish":
+				language = turkish
+			if ref2.get() == None:
+				language = english
 			lang = lang.lower()
 			#print(lang)
 			if lang not in languages:
 				try:
-					return await ctx.send(language[165].format(a,c))
+					return await ctx.send(language[165])
 				except:
-					return await ctx.author.send(language[165].format(a,c))
+					return await ctx.author.send(language[165])
 			# Update language setting in database
 			ref.update({
 			'lang': lang
 			})
+			language = lang
+			return await ctx.send(language[175].format(lang))
 	except Exception as e:
 		print(e)
 		
 #-------------------------------------------------------------------------------
 #------------------------------- RUN LINE --------------------------------------
 #-------------------------------------------------------------------------------
-bot.run('Token goes here', bot=True, reconnect=True)
+bot.run('Bot token here', bot=True, reconnect=True)
