@@ -6,12 +6,23 @@ import datetime
 from datetime import datetime, timedelta
 from discord.ext.commands import CommandNotFound, MissingPermissions, MessageNotFound, NotOwner, BotMissingPermissions, CommandOnCooldown, MissingRequiredArgument
 
+#Russian
+textfile = open('ru-errors.txt', 'r', encoding="utf-8")
+russian = textfile.read().splitlines()
+textfile.close()
+#English
 textfile = open('en-errors.txt', 'r')
 english = textfile.read().splitlines()
 textfile.close()
-textfile = open('fr-errors.txt', 'r')
+#French
+textfile = open('fr-errors.txt', 'r', encoding="utf-8")
 french = textfile.read().splitlines()
 textfile.close()
+#Turkish
+textfile = open('tr-errors.txt', 'r', encoding="utf8")
+turkish = textfile.read().splitlines()
+textfile.close()
+
 
 class Error(commands.Cog):
 	def __init__(self, bot):
@@ -20,8 +31,6 @@ class Error(commands.Cog):
 	async def on_command_error(self, ctx, error):
 		error = getattr(error, 'original', error)
 		#language = english
-		s = ""
-		a = ""
 		# Get user ID
 		user = ctx.author.id
 		# Set reference
@@ -32,6 +41,12 @@ class Error(commands.Cog):
 			a = "\u00e8"
 		if ref.get() == "english":
 			language = english
+		if ref.get() == "russian":
+			language = russian
+		if ref2.get() == "turkish":
+			language = turkish
+		if ref.get() == None:
+			language = english
 		# Catch CommandNotFound Error
 		if isinstance(error, discord.ext.commands.CommandNotFound):
 			try:
@@ -41,7 +56,7 @@ class Error(commands.Cog):
 		# Catch MessageNotFound Error
 		if isinstance(error, discord.ext.commands.MessageNotFound):
 			try:
-				return await ctx.send(language[6].format(a))
+				return await ctx.send(language[6])
 			except:
 				try:
 					return await ctx.author.send(language[6])
@@ -62,7 +77,7 @@ class Error(commands.Cog):
 			error = error.split()
 			time = error[len(error) - 1]
 			try:
-				await ctx.send(language[3].format(time,a))
+				await ctx.send(language[3].format(time))
 			except Exception as e:
 				print(e)
 				try:
@@ -126,13 +141,21 @@ class Error(commands.Cog):
 						return await ctx.send(language[9])
 					except:
 						return
+			if(command == 'clan'):
+				try:
+					return await ctx.send(language[9])
+				except:
+					try:
+						return await ctx.send(language[9])
+					except:
+						return
 		# Catch BotMissingPermissions Error
 		if isinstance(error, discord.ext.commands.BotMissingPermissions):
 			try:
-				return await ctx.send(language[0].format(a))
+				return await ctx.send(language[0])
 			except:
 				try:
-					return await ctx.author.send(language[0].format(a))
+					return await ctx.author.send(language[0])
 				except:
 						print("{0} id {1} name ".format(ctx.message.guild.id,ctx.message.guild.name))
 						return
