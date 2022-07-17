@@ -21,21 +21,20 @@ from pytesseract import pytesseract
 import numpy as np
 from matplotlib import pyplot as plt, ticker as ticker, dates as mdates
 from discord.ext.commands import CommandNotFound, MissingPermissions, MessageNotFound, NotOwner, BotMissingPermissions, CommandOnCooldown
-path_to_tesseract = r"Tesseract.exe path"
+path_to_tesseract = r"tesseract.exe file path"
 #from threading import Thread
 intents = discord.Intents.default()
 intents.messages = True
 intents.members = True
 
-
 creds = service_account.Credentials.from_service_account_file(
-    'GoogleCredentialsFile.json')
+    'Google credentials.json')
 
 
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
 # The ID and range of a sample spreadsheet.
-SPREADSHEET_ID = 'Google Sheets ID'
+SPREADSHEET_ID = 'Spreadsheet id'
 RANGE_NAME = 'A2'
 
 bot = commands.Bot(command_prefix="t!", case_insensitive=True, activity=discord.Game(name="t!help for commands"), status=discord.Status.online,help_command=None,intents=intents)
@@ -44,9 +43,9 @@ bot = commands.Bot(command_prefix="t!", case_insensitive=True, activity=discord.
 # List of removeWins admins
 winAdmins = ((138752093308583936,"ELITE"),(524835935276498946,"ELITE"),(746381696139788348,"ISLAM"),(735145539494215760,"ISLAM"),(514953130178248707,"RL"))
 	
-database_url = "Firebase URL"
+database_url = "database url"
 
-cred = firebase_admin.credentials.Certificate('FirebaseCredentialsFile.json')
+cred = firebase_admin.credentials.Certificate('FirebaseCredentials.json')
 databaseApp = firebase_admin.initialize_app(cred, { 'databaseURL' : database_url})
 
 textfile = open('ru-strings.txt', 'r', encoding="utf8")
@@ -511,8 +510,18 @@ async def imagelooper(channel):
 									points2 = points2.strip('.')
 									points2 = int(points2)
 									points2 = points2 * 2
+									if(points2 > 1100):
+										await ctx.send(language[176].format(user))
+										os.remove(attachment.filename)
+										return
 								else:
 									points2 = points2.strip(" ")
+									points2 = points2.strip('.')
+									points2 = int(points2)
+									if(points2 > 600):
+										await ctx.send(language[176].format(user))
+										os.remove(attachment.filename)
+										return
 							except Exception as e:
 								print("Points error")
 								print(e)
@@ -590,10 +599,21 @@ async def imagelooper(channel):
 										points2 = points2.split("x")
 										points2 = points2[0]
 										points2 = points2.strip(" ")
+										points2 = points2.strip('.')
 										points2 = int(points2)
 										points2 = points2 * 2
+										if(points2 > 1100):
+											await channel.send(language[176].format(user))
+											os.remove(attachment.filename)
+											return
 									else:
 										points2 = points2.strip(" ")
+										points2 = points2.strip('.')
+										points2 = int(points2)
+										if(points2 > 600):
+											await channel.send(language[176].format(user))
+											os.remove(attachment.filename)
+											return
 								except Exception as e:
 									print("Points error")
 									print(e)
@@ -646,6 +666,10 @@ async def imagelooper(channel):
 						#print("Invalid image type")
 						#print(attachment.filename)
 		except Exception as e:
+			try:
+				os.remove(attachment.filename)
+			except:
+				do = "nothing"
 			#language = english
 			if isinstance(e, discord.ext.commands.MessageNotFound):
 				await channel.send(language[111].format(a))
@@ -2355,6 +2379,69 @@ async def setlanguage(ctx, lang):
 			})
 			language = lang
 			return await ctx.send(language[175].format(lang))
+	except Exception as e:
+		print(e)
+#-------------------------------------------------------------------------------
+#------------------------------ Remove Wins Self Version -----------------------
+#-------------------------------------------------------------------------------	
+@bot.command(pass_context = True)
+async def remove(ctx,wins,points = None):
+	try:
+		# Get/Set Language
+		user = ctx.message.author.id
+		ref2 = db.reference('/users/{0}/lang'.format(user))
+		if ref2.get() == "french":
+			language = french
+		if ref2.get() == "english":
+			language = english
+		if ref2.get() == "russian":
+			language = russian
+		if ref2.get() == "turkish":
+			language = turkish
+		if ref2.get() == None:
+			language = english
+		# Check if integer was provided for wins
+		try:
+			wins = int(wins)
+		except:
+			await ctx.send(language[122])
+			return
+		# Check if user exists in databse
+		ref = db.reference('users/{0}'.format(user))
+		if ref.get() == None:
+			await ctx.send(language[123])
+			return
+		try:
+			points = int(points)
+		except:
+			points = 0
+		ref = db.reference('users/{0}/clans/currentclan'.format(user))
+		clan = ref.get()
+		ref = db.reference('users/{0}/clans/{1}/wins'.format(user,clan))
+		count = ref.get()
+		if count == None:
+			await ctx.send(language[124].format(clan))
+			return
+		# Check if points exist
+		ref = db.reference('users/{0}/clans/{1}/points'.format(user,clan))
+		count2 = ref.get()
+		if count2 == None:
+			await ctx.send(language[124].format(clan))
+			count2 = 0
+		# Update wins and points
+		total = count - int(wins)
+		if (count2 != 0):
+			total2 = count2 - points
+		if total < 0:
+			total = 0
+		if total2 < 0:
+			total2 = 0
+		ref = db.reference('users/{0}/clans/{1}'.format(user,clan))
+		ref.update({
+			'wins': total,
+			'points': total2
+		})
+		await ctx.send(language[177].format(user,total,total2))
 	except Exception as e:
 		print(e)
 		
