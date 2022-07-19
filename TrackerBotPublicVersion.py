@@ -21,20 +21,20 @@ from pytesseract import pytesseract
 import numpy as np
 from matplotlib import pyplot as plt, ticker as ticker, dates as mdates
 from discord.ext.commands import CommandNotFound, MissingPermissions, MessageNotFound, NotOwner, BotMissingPermissions, CommandOnCooldown
-path_to_tesseract = r"tesseract.exe file path"
+path_to_tesseract = r"Tesseract.exe here"
 #from threading import Thread
 intents = discord.Intents.default()
 intents.messages = True
 intents.members = True
 
 creds = service_account.Credentials.from_service_account_file(
-    'Google credentials.json')
+    'Google credentials here')
 
 
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
 # The ID and range of a sample spreadsheet.
-SPREADSHEET_ID = 'Spreadsheet id'
+SPREADSHEET_ID = 'Google sheet id here'
 RANGE_NAME = 'A2'
 
 bot = commands.Bot(command_prefix="t!", case_insensitive=True, activity=discord.Game(name="t!help for commands"), status=discord.Status.online,help_command=None,intents=intents)
@@ -43,9 +43,9 @@ bot = commands.Bot(command_prefix="t!", case_insensitive=True, activity=discord.
 # List of removeWins admins
 winAdmins = ((138752093308583936,"ELITE"),(524835935276498946,"ELITE"),(746381696139788348,"ISLAM"),(735145539494215760,"ISLAM"),(514953130178248707,"RL"))
 	
-database_url = "database url"
+database_url = "Firebase database url here"
 
-cred = firebase_admin.credentials.Certificate('FirebaseCredentials.json')
+cred = firebase_admin.credentials.Certificate('Firebase credentials here')
 databaseApp = firebase_admin.initialize_app(cred, { 'databaseURL' : database_url})
 
 textfile = open('ru-strings.txt', 'r', encoding="utf8")
@@ -82,6 +82,7 @@ async def on_ready():
 	if counter == 1:
 		try:
 			bot.load_extension("Error")
+			bot.load_extension("Poll")
 			clanRanker.start()
 		except Exception as e:
 			print(".start() error")
@@ -95,7 +96,7 @@ async def on_ready():
 		# REVISIT AND DELETE STUFF DOESNT WORK PROPERLY
 		try:
 			channel = bot.get_channel(int(900982254287855688))
-			elite_task = tasks.loop(seconds=4.0,count=None,reconnect=True)(imagelooper)
+			elite_task = tasks.loop(seconds=5.0,count=None,reconnect=True)(imagelooper)
 			#Thread(new_task.start(channel))
 			elite_task.start(channel)
 		except Exception as e:
@@ -113,7 +114,7 @@ async def on_ready():
 						ref = db.reference('/imageChannels/{0}/'.format(int(channels[i][0])))
 						ref.delete()
 					else:
-						new_task = tasks.loop(seconds=10.0,count=None,reconnect=True)(imagelooper)
+						new_task = tasks.loop(seconds=15.0,count=None,reconnect=True)(imagelooper)
 						#Thread(new_task.start(channel))
 						new_task.start(channel)
 						testLine = "test"
@@ -335,407 +336,8 @@ async def setup(ctx):
 	await asyncio.sleep(20)
 	await ctx.send(language[82] + '\n' + language[101] + '\n' + language[102] + '\n' + language[103] + '\n' + language[104] + '\n' + language[105])
 
-#-------------------------------------------------------------------------------
-#------------------------------ START Image Tracking ---------------------------
-#-------------------------------------------------------------------------------
-async def imagelooper(channel):
-	message2 = None
-	try:
-		mRef = db.reference('/imageChannels/{0}/lastMessage'.format(channel.guild.id))
-		if mRef.get() == "None":
-			lastM = db.reference('/imageChannels/{0}'.format(channel.guild.id))
-			lastM.update({
-						'lastMessage': "952233422540144721"
-						})
-		else:
-			message2 = int(mRef.get())
-	except:
-		# Fetch message line goes here
-		try:
-			message3 = await channel.history(limit=1).flatten()
-			mRef.update({
-						'lastMessage': str(message3.id)
-						})
-			print(channel.id)
-			print(channel)
-		except:
-			print(channel)
-	
-	i = 0
-	if message2 == "None":
-		lastM = db.reference('/imageChannels/{0}'.format(channel.guild.id))
-		lastM.update({
-					'lastMessage': "952233422540144721"
-					})
-	else:
-		try:
-			message = await channel.fetch_message(
-				channel.last_message_id)
-			#try:
-				# Get user ID
-			user = message.author.id
-			# Get/Set Language
-			a = ''
-			c = ''
-			s = ''
-			ref2 = db.reference('/users/{0}/lang'.format(user))
-			if ref2.get() == "french":
-				language = french
-				a = "\u00e8"
-				c = "\u00e7"
-				s = "\u00e0"
-			if ref2.get() == "english":
-				language = english
-			if ref2.get() == "russian":
-				language = russian
-			if ref2.get() == "turkish":
-				language = turkish
-			if ref2.get() == None:
-				language = english
-			#except Exception as e:
-				#print(e)
-			opt = db.reference('/users/{0}/opt'.format(user))
-			if (opt.get() == True):
-				await channel.send(language[106].format(a))
-				return
-			user = None
-			guild = None
-			if message2 == message.id:
-				i += 1
-			else:
-				if len(message.attachments) > 0:
-					if len(message.attachments) > 1:
-						await channel.send(language[107].format(a))
-					attachment = message.attachments[0]
-					if attachment.filename.endswith(".jpg") or attachment.filename.endswith(".jpeg") or attachment.filename.endswith(".png") or attachment.filename.endswith(".webp") or attachment.filename.endswith(".PNG") or attachment.filename.endswith(".JPG") or attachment.filename.endswith(".JPEG"):
-						image = attachment.url
-						await attachment.save(attachment.filename)
-						#print(attachment.filename)
-						image_path = r"{0}".format(attachment.filename)
-						#print(image_path)
-						img = cv2.imread(image_path)
-						kernel = np.ones((1, 1), np.uint8)
-						img = cv2.dilate(img, kernel, iterations=1)
-						img = cv2.erode(img, kernel, iterations=1)
-						#plt.imshow(img, cmap="gray")
-						#plt.show()
-						pytesseract.tesseract_cmd = path_to_tesseract
-						text = pytesseract.image_to_string(img)
-						#print(text[:-1])
-						user = message.author.id
-						guild = message.guild.id
-						guild = bot.get_guild(guild)
-						# Check if user exists, and create profile if not
-						ref = db.reference('/users/{0}'.format(user))
-						if ref.get() == None:
-							# Add to scope list
-							newRef = db.reference('/userIDs/{0}'.format(user))
-							newRef.set({
-							'scope': True
-							})
-							# Get username/nickname
-							username = ((await guild.fetch_member(user)).nick)
-							if username == None:
-								username = ((await guild.fetch_member(user)).name)
-							username = username.replace('/',' ')
-							# Add to user list
-							# check for guild/clan
-							ref.set({
-							'brwins': 0,
-							'clans': {
-								'currentclan': "none"
-							},
-							'lang': 'english',
-							'name': username,
-							'onevsone': 0
-							})
-							await channel.send(language[108].format(a))
-							mRef = db.reference('/imageChannels/{0}'.format(channel.guild.id))
-							mRef.update({
-							'lastMessage': str(message.id)
-							})
-							os.remove(attachment.filename)
-							return
-						else:
-							# Get clan 
-							fRef = db.reference('/users/{0}/clans'.format(user))
-							info = fRef.get()
-							infoList = list(info.items())
-							index = len(infoList) - 1
-							clan = infoList[index][1]
-							# Debug line print(attachment.url)
-							pRef = db.reference('/users/{0}/clans/{1}/previous'.format(user,clan))
-							#print(pRef.get() + "test")
-							if pRef.get() != None:
-								if text[:30] == pRef.get():
-									await channel.send(language[109].format(user,a,s))
-									print("{0} tried to cheat".format(user))
-									os.remove(attachment.filename)
-									mRef = db.reference('/imageChannels/{0}'.format(channel.guild.id))
-									mRef.update({
-									'lastMessage': str(message.id)
-									})
-									#language = english
-									return
-							# Convert database version to game version
-							clan = clan.replace('PERIOD5', '.')
-							clan = clan.replace('DOLLAR5', '$')
-							clan = clan.replace('HTAG5', '#')
-							clan = clan.replace('LBRACKET5', '[')
-							clan = clan.replace('SLASH5', '/')
-							clan = clan.replace('RBRACKET5', ']')
-							clan = clan.replace('QMARK5', '?')
-							
-							win = "[{0}] has won".format(clan)
-							win2 = "[{0}] has won".format(clan)
-							win3 = "[{0}]has won".format(clan)
-							win4 = "[ {0}] has won".format(clan)
-							win5 = "[ {0} ] has won".format(clan)
-							win6 = "[{0} ] has won".format(clan)
-							win7 = "{0}] has won".format(clan)
-							win8 = "[{0} has won".format(clan)
-							win9 = "[ {0}] has won".format(clan)
-							win10 = "[ {0} ] has won".format(clan)
-							try:
-								result = re.search('has won(.*)p', text)
-								if result == None:
-									points2 = "0"
-									#print(text)
-								else:
-									points2 = result.group(1)
-								if "x" in points2:
-									points2 = points2.split("x")
-									points2 = points2[0]
-									points2 = points2.strip(" ")
-									points2 = points2.strip('.')
-									points2 = int(points2)
-									points2 = points2 * 2
-									if(points2 > 1100):
-										await ctx.send(language[176].format(user))
-										os.remove(attachment.filename)
-										return
-								else:
-									points2 = points2.strip(" ")
-									points2 = points2.strip('.')
-									points2 = int(points2)
-									if(points2 > 600):
-										await ctx.send(language[176].format(user))
-										os.remove(attachment.filename)
-										return
-							except Exception as e:
-								print("Points error")
-								print(e)
-							#print("BEfore win check")
-							# Check for clan win statement
-							if win in text or win2 in text or win3 in text or win4 in text or win5 in text or win6 in text or win7 in text or win8 in text or win9 in text or win10 in text:
-								# Check if clan is not set
-								if clan == "none":
-									await channel.send(language[108].format(a))
-									mRef = db.reference('/imageChannels/{0}'.format(channel.guild.id))
-									mRef.update({
-									'lastMessage': str(message.id)
-									})
-									try:
-										os.remove(attachment.filename)
-									except Exception as e:
-										print("Os.remove error")
-										print(e)
-									return
-								else:
-									#wins = 0
-									#print("BEfore win update")
-									ref2 = db.reference('/users/{0}/clans/{1}/wins'.format(user,clan))
-									wins = ref2.get()
-									ref2 = db.reference('/users/{0}/clans/{1}/points'.format(user,clan))
-									try:
-										points = int(ref2.get()) + int(points2)
-										ref2 = db.reference('/users/{0}/clans/{1}'.format(user,clan))
-									except Exception as e:
-										ref2 = db.reference('/users/{0}/clans/{1}'.format(user,clan))
-										points = points2
-									wins = wins + 1
-									ref2.update({
-										'wins': wins,
-										'previous': text[:30],
-										'points': points
-									})
-									mRef = db.reference('/imageChannels/{0}'.format(channel.guild.id))
-									mRef.update({
-									'lastMessage': str(message.id)
-									})
-									os.remove(attachment.filename)
-									await channel.send(language[110].format(user,wins,a))
-									if(message.guild.id == 900982253679702036) and (clan.lower() == "elite"):
-										try:
-											update = await channel.send("e.tracker <@{0}> {1}".format(user,points2))
-											await asyncio.sleep(3)
-											await update.delete()
-										except Exception as e:
-											print(e)
-									return
-									#language = english
-							else:
-								img = Image.open(image_path)
-								width, height = img.size
-								left = width / 5
-								top = height / 4
-								right = width
-								bottom = height
-								img = img.crop((left, top, right, bottom))
-								img = img.convert('L')  # convert image to monochrome
-								img = img.point(lambda p: p > 100 and 255)
-								text = pytesseract.image_to_string(img)
-								#plt.imshow(img)
-								#plt.show()
-								#print(text[:-1])
-								try:
-									result = re.search('has won(.*)p', text)
-									if result == None:
-										points2 = "0"
-										#print(text)
-									else:
-										points2 = result.group(1)
-									if "x" in points2:
-										points2 = points2.split("x")
-										points2 = points2[0]
-										points2 = points2.strip(" ")
-										points2 = points2.strip('.')
-										points2 = int(points2)
-										points2 = points2 * 2
-										if(points2 > 1100):
-											await channel.send(language[176].format(user))
-											os.remove(attachment.filename)
-											return
-									else:
-										points2 = points2.strip(" ")
-										points2 = points2.strip('.')
-										points2 = int(points2)
-										if(points2 > 600):
-											await channel.send(language[176].format(user))
-											os.remove(attachment.filename)
-											return
-								except Exception as e:
-									print("Points error")
-									print(e)
-								if win in text or win2 in text or win3 in text or win4 in text or win5 in text or win6 in text or win7 in text or win8 in text or win9 in text or win10 in text:
-								# Check if clan is not set
-									if clan == "none":
-										mRef = db.reference('/imageChannels/{0}'.format(channel.guild.id))
-										mRef.update({
-										'lastMessage': str(message.id)
-										})
-										os.remove(attachment.filename)
-										await channel.send(language[108].format(a))
-										return
-									else:
-										#print("BEfore win update")
-										#wins = 0
-										ref2 = db.reference('/users/{0}/clans/{1}/wins'.format(user,clan))
-										wins = ref2.get()
-										ref2 = db.reference('/users/{0}/clans/{1}/points'.format(user,clan))
-										try:
-											points = int(ref2.get()) + int(points2)
-											ref2 = db.reference('/users/{0}/clans/{1}'.format(user,clan))
-										except Exception as e:
-											ref2 = db.reference('/users/{0}/clans/{1}'.format(user,clan))
-											points = points2
-										wins = wins + 1
-										ref2.update({
-											'wins': wins,
-											'previous': text[:30],
-											'points': points
-										})
-										os.remove(attachment.filename)
-										mRef = db.reference('/imageChannels/{0}'.format(channel.guild.id))
-										mRef.update({
-										'lastMessage': str(message.id)
-										})
-										os.remove(attachment.filename)
-										await channel.send(language[110].format(user,wins,a))
-										if(message.guild.id == 900982253679702036) and (clan.lower() == "elite"):
-											try:
-												update = await channel.send("e.tracker <@{0}> {1}".format(user,points2))
-												await asyncio.sleep(3)
-												await update.delete()
-											except Exception as e:
-												print(e)
-											return
-					else:
-						os.remove(attachment.filename)
-						z = "do nothing"
-						#print("Invalid image type")
-						#print(attachment.filename)
-		except Exception as e:
-			try:
-				os.remove(attachment.filename)
-			except:
-				do = "nothing"
-			#language = english
-			if isinstance(e, discord.ext.commands.MessageNotFound):
-				await channel.send(language[111].format(a))
-				mRef = db.reference('/imageChannels/{0}'.format(channel.guild.id))
-				mRef.update({
-				'lastMessage': str(message2)
-				})
-			elif isinstance(e, discord.ext.commands.BotMissingPermissions):
-				ref = db.reference('/imageChannels/{0}'.format(channel.id))
-				ref.delete()
-				try:
-					await channel.send(language[112].format('<@138752093308583936>',a))
-				except:
-					print("The channel {0} in guild {1}".format(channel.id,channel.guild.name))
-			else:
-				#print("Channel then guild id")
-				#print(channel.id)
-				#print(channel.guild.id)
-				mRef = db.reference('/imageChannels/{0}'.format(channel.guild.id))
-				mRef.update({
-				'lastMessage': str(message2)
-				})
-				#await channel.send("Uh oh, something went wrong! Please harrass your local Ryo5678 to fix it.")
-				#print("imageTrack loops = {0}".format(i))
-				#print(e)
-			#await ctx.send("!imageTrack")		
-@bot.command(pass_context = True)
-@commands.has_permissions(administrator=True)
-@commands.cooldown(1, 600, commands.BucketType.user)
-async def imageTrack(ctx):
-	# Get/Set Language
-	user = ctx.message.author.id
-	a = ''
-	c = ''
-	s = ''
-	j = ''
-	ref2 = db.reference('/users/{0}/lang'.format(user))
-	if ref2.get() == "french":
-		language = french
-		a = "\u00e8"
-		c = "\u00e7"
-		s = "\u00e0"
-		j = "\u00ee"
-	if ref2.get() == "english":
-		language = english
-	if ref2.get() == "russian":
-		language = russian
-	if ref2.get() == "turkish":
-		language = turkish
-	if ref2.get() == None:
-		language = english
-	guild = ctx.message.guild.id
-	ref = db.reference('/imageChannels/{0}'.format(guild))
-	if ref.get() != None:
-		await ctx.send(language[113].format(a,s,j))
-	else:
-		ref = db.reference('/imageChannels/{0}'.format(guild))
-		ref.update({
-		'channelID': "{0}".format(ctx.channel.id),
-		'lastMessage': str(ctx.message.id)
-		})
-		channel = bot.get_channel(ctx.channel.id)
-		new_task = tasks.loop(seconds=5.0,count=None,reconnect=True)(imagelooper)
-		new_task.start(channel)
-		await ctx.send(language[114].format(a,j))
-	await ctx.message.delete()
+
+
 #-------------------------------------------------------------------------------
 #------------------------------ Set Announcement Channel -----------------------------
 #-------------------------------------------------------------------------------	
@@ -976,15 +578,16 @@ def profileDisplay(ctx,user,username):
 	# Get/Set Language
 	user3 = ctx.message.author.id
 	ref2 = db.reference('/users/{0}/lang'.format(user3))
-	if ref2.get() == "french":
+	lang = ref2.get()
+	if lang == "french":
 		language = french
-	if ref2.get() == "english":
+	if lang == "english":
 		language = english
-	if ref2.get() == "russian":
+	if lang == "russian":
 		language = russian
-	if ref2.get() == "turkish":
+	if lang == "turkish":
 		language = turkish
-	if ref2.get() == None:
+	if lang == None:
 		language = english
 	# Get user ID
 	user2 = ctx.message.author.id
@@ -1069,6 +672,7 @@ def profileDisplay(ctx,user,username):
 		guild = ctx.message.guild.id
 		# Profile Embed
 		sheet = discord.Embed(title=language[129], description=language[130].format(username), color=0x0000FF)
+		sheet.add_field(name="Language", value=lang, inline=False)
 		sheet.add_field(name=language[131], value=clan, inline=False)
 		sheet.add_field(name=language[132], value=ovo, inline=False)
 		sheet.add_field(name=language[133], value=br, inline=False)
@@ -1796,7 +1400,8 @@ async def status(ctx,*,text):
 @bot.command()
 @commands.is_owner()
 async def ping(ctx):
-	await ctx.send("Pong")
+	#await ctx.send("Pong")
+	await ctx.send('Pong! {}ms'.format(round(bot.latency, 1)))
 
 @bot.command()
 @commands.is_owner()
@@ -2081,18 +1686,30 @@ async def compare(ctx,*,clans):
 					except:
 						print(games[i][1]['Players'])
 				if(b == 1):
-					pF = int(statistics.mean(players))
-					for map in maps:
-						for name in map.split():
-							temp2[name] += 1
-					mF = max(temp2, key=temp2.get)
+					if(players == []):
+						pF = 0
+					else:
+						pF = int(statistics.mean(players))
+					if(maps == []):
+						mF = "N/A"
+					else:
+						for map in maps:
+							for name in map.split():
+								temp2[name] += 1
+						mF = max(temp2, key=temp2.get)
 					gF = count
 				elif(b == 2):
-					pS = int(statistics.mean(players))
-					for map in maps:
-						for name in map.split():
-							temp2[name] += 1
-					mS = max(temp2, key=temp2.get)
+					if(players == []):
+						pS = 0
+					else:
+						pS = int(statistics.mean(players))
+					if(maps == []):
+						mS = "N/A"
+					else:
+						for map in maps:
+							for name in map.split():
+								temp2[name] += 1
+						mS = max(temp2, key=temp2.get)
 					gS = count
 				b += 1
 				plt.plot(times,scores,label=clan)
@@ -2377,7 +1994,17 @@ async def setlanguage(ctx, lang):
 			ref.update({
 			'lang': lang
 			})
-			language = lang
+			if lang == "french":
+				language = french
+			if lang == "english":
+				language = english
+			if lang == "russian":
+				language = russian
+			if lang == "turkish":
+				language = turkish
+			if lang == None:
+				language = english
+			print("Issue check, string index of out range")
 			return await ctx.send(language[175].format(lang))
 	except Exception as e:
 		print(e)
@@ -2403,6 +2030,8 @@ async def remove(ctx,wins,points = None):
 		# Check if integer was provided for wins
 		try:
 			wins = int(wins)
+			if (int(wins) < 0):
+				return
 		except:
 			await ctx.send(language[122])
 			return
@@ -2413,6 +2042,8 @@ async def remove(ctx,wins,points = None):
 			return
 		try:
 			points = int(points)
+			if (int(points) < 0):
+				return
 		except:
 			points = 0
 		ref = db.reference('users/{0}/clans/currentclan'.format(user))
@@ -2444,8 +2075,427 @@ async def remove(ctx,wins,points = None):
 		await ctx.send(language[177].format(user,total,total2))
 	except Exception as e:
 		print(e)
-		
 #-------------------------------------------------------------------------------
 #------------------------------- RUN LINE --------------------------------------
 #-------------------------------------------------------------------------------
-bot.run('Bot token here', bot=True, reconnect=True)
+@bot.command(pass_context = True)
+@commands.is_owner()
+async def pollSwitch(ctx):
+	try:
+		bot.load_extension("Poll")
+		await ctx.send("Poll is online")
+	except commands.ExtensionAlreadyLoaded:
+		bot.unload_extension("Poll")
+		await ctx.send("Poll is offline")
+#-------------------------------------------------------------------------------
+#------------------------------ START Image Tracking ---------------------------
+#-------------------------------------------------------------------------------
+async def imagelooper(channel):
+	message2 = None
+	try:
+		mRef = db.reference('/imageChannels/{0}/lastMessage'.format(channel.guild.id))
+		if mRef.get() == "None":
+			lastM = db.reference('/imageChannels/{0}'.format(channel.guild.id))
+			lastM.update({
+						'lastMessage': "952233422540144721"
+						})
+		else:
+			message2 = int(mRef.get())
+	except:
+		# Fetch message line goes here
+		try:
+			message3 = await channel.history(limit=1).flatten()
+			mRef.update({
+						'lastMessage': str(message3.id)
+						})
+			print(channel.id)
+			print(channel)
+		except:
+			print(channel)
+	
+	i = 0
+	if message2 == "None":
+		lastM = db.reference('/imageChannels/{0}'.format(channel.guild.id))
+		lastM.update({
+					'lastMessage': "952233422540144721"
+					})
+	else:
+		try:
+			message = await channel.fetch_message(
+				channel.last_message_id)
+			mRef = db.reference('/imageChannels/{0}'.format(channel.guild.id))
+			mRef.update({
+			'lastMessage': str(message.id)
+			})
+			# Get user ID
+			#print("Test")
+			user = message.author.id
+			# Get/Set Language
+			a = ''
+			c = ''
+			s = ''
+			ref2 = db.reference('/users/{0}/lang'.format(user))
+			if ref2.get() == "french":
+				language = french
+				a = "\u00e8"
+				c = "\u00e7"
+				s = "\u00e0"
+			if ref2.get() == "english":
+				language = english
+			if ref2.get() == "russian":
+				language = russian
+			if ref2.get() == "turkish":
+				language = turkish
+			if ref2.get() == None:
+				language = english
+			#except Exception as e:
+				#print(e)
+			opt = db.reference('/users/{0}/opt'.format(user))
+			if (opt.get() == True):
+				await channel.send(language[106].format(a))
+				return
+			user = None
+			guild = None
+			if message2 == message.id:
+				i += 1
+			else:
+				if len(message.attachments) > 0:
+					if len(message.attachments) > 1:
+						await channel.send(language[107].format(a))
+					attachment = message.attachments[0]
+					if attachment.filename.endswith(".jpg") or attachment.filename.endswith(".jpeg") or attachment.filename.endswith(".png") or attachment.filename.endswith(".webp") or attachment.filename.endswith(".PNG") or attachment.filename.endswith(".JPG") or attachment.filename.endswith(".JPEG"):
+						image = attachment.url
+						await attachment.save(attachment.filename)
+						#print(attachment.filename)
+						image_path = r"{0}".format(attachment.filename)
+						#print(image_path)
+						img = cv2.imread(image_path)
+						kernel = np.ones((1, 1), np.uint8)
+						img = cv2.dilate(img, kernel, iterations=1)
+						img = cv2.erode(img, kernel, iterations=1)
+						#plt.imshow(img, cmap="gray")
+						#plt.show()
+						pytesseract.tesseract_cmd = path_to_tesseract
+						text = pytesseract.image_to_string(img)
+						print(text[:30])
+						user = message.author.id
+						guild = message.guild.id
+						guild = bot.get_guild(guild)
+						# Check if user exists, and create profile if not
+						ref = db.reference('/users/{0}'.format(user))
+						if ref.get() == None:
+							# Add to scope list
+							newRef = db.reference('/userIDs/{0}'.format(user))
+							newRef.set({
+							'scope': True
+							})
+							# Get username/nickname
+							username = ((await guild.fetch_member(user)).nick)
+							if username == None:
+								username = ((await guild.fetch_member(user)).name)
+							username = username.replace('/',' ')
+							# Add to user list
+							# check for guild/clan
+							ref.set({
+							'brwins': 0,
+							'clans': {
+								'currentclan': "none"
+							},
+							'lang': 'english',
+							'name': username,
+							'onevsone': 0
+							})
+							await channel.send(language[108].format(a))
+							mRef = db.reference('/imageChannels/{0}'.format(channel.guild.id))
+							mRef.update({
+							'lastMessage': str(message.id)
+							})
+							os.remove(attachment.filename)
+							return
+						else:
+							# Get clan 
+							fRef = db.reference('/users/{0}/clans'.format(user))
+							info = fRef.get()
+							infoList = list(info.items())
+							index = len(infoList) - 1
+							clan = infoList[index][1]
+							# Debug line print(attachment.url)
+							pRef = db.reference('/users/{0}/clans/{1}/previous'.format(user,clan))
+							#print(pRef.get() + "test")
+							if pRef.get() != None:
+								if text[:15] == pRef.get():
+									await channel.send(language[109].format(user,a,s))
+									print("{0} tried to cheat".format(user))
+									os.remove(attachment.filename)
+									mRef = db.reference('/imageChannels/{0}'.format(channel.guild.id))
+									mRef.update({
+									'lastMessage': str(message.id)
+									})
+									#language = english
+									return
+							# Convert database version to game version
+							clan = clan.replace('PERIOD5', '.')
+							clan = clan.replace('DOLLAR5', '$')
+							clan = clan.replace('HTAG5', '#')
+							clan = clan.replace('LBRACKET5', '[')
+							clan = clan.replace('SLASH5', '/')
+							clan = clan.replace('RBRACKET5', ']')
+							clan = clan.replace('QMARK5', '?')
+							
+							win = "[{0}] has won".format(clan)
+							win2 = "[{0}] has won".format(clan)
+							win3 = "[{0}]has won".format(clan)
+							win4 = "[ {0}] has won".format(clan)
+							win5 = "[ {0} ] has won".format(clan)
+							win6 = "[{0} ] has won".format(clan)
+							win7 = "{0}] has won".format(clan)
+							win8 = "[{0} has won".format(clan)
+							win9 = "[ {0}] has won".format(clan)
+							win10 = "[ {0} ] has won".format(clan)
+							try:
+								result = re.search('has won(.*)p', text)
+								if result == None:
+									points2 = "0"
+									#print(text)
+								else:
+									points2 = result.group(1)
+								if "x" in points2:
+									points2 = points2.split("x")
+									points2 = points2[0]
+									points2 = points2.strip(" ")
+									points2 = points2.strip('.')
+									points2 = points2.strip('/')
+									points2 = int(points2)
+									points2 = points2 * 2
+									if(points2 > 1100):
+										await channel.send(language[176].format(user))
+										os.remove(attachment.filename)
+										return
+								else:
+									points2 = points2.strip('/')
+									points2 = points2.strip(" ")
+									points2 = points2.strip('.')
+									points2 = int(points2)
+									if(points2 > 600):
+										await channel.send(language[176].format(user))
+										os.remove(attachment.filename)
+										return
+							except Exception as e:
+								print("Points error")
+								print(e)
+							#print("BEfore win check")
+							# Check for clan win statement
+							if win in text or win2 in text or win3 in text or win4 in text or win5 in text or win6 in text or win7 in text or win8 in text or win9 in text or win10 in text:
+								# Check if clan is not set
+								if clan == "none":
+									await channel.send(language[108].format(a))
+									mRef = db.reference('/imageChannels/{0}'.format(channel.guild.id))
+									mRef.update({
+									'lastMessage': str(message.id)
+									})
+									try:
+										os.remove(attachment.filename)
+									except Exception as e:
+										print("Os.remove error")
+										print(e)
+									return
+								else:
+									#wins = 0
+									#print("BEfore win update")
+									ref2 = db.reference('/users/{0}/clans/{1}/wins'.format(user,clan))
+									wins = ref2.get()
+									ref2 = db.reference('/users/{0}/clans/{1}/points'.format(user,clan))
+									try:
+										points = int(ref2.get()) + int(points2)
+										ref2 = db.reference('/users/{0}/clans/{1}'.format(user,clan))
+									except Exception as e:
+										ref2 = db.reference('/users/{0}/clans/{1}'.format(user,clan))
+										points = points2
+									wins = wins + 1
+									ref2.update({
+										'wins': wins,
+										'previous': text[:30],
+										'points': points
+									})
+									mRef = db.reference('/imageChannels/{0}'.format(channel.guild.id))
+									mRef.update({
+									'lastMessage': str(message.id)
+									})
+									os.remove(attachment.filename)
+									await channel.send(language[110].format(user,wins,a))
+									if(message.guild.id == 900982253679702036) and (clan.lower() == "elite"):
+										try:
+											update = await channel.send("e.tracker <@{0}> {1}".format(user,points2))
+											await asyncio.sleep(3)
+											await update.delete()
+										except Exception as e:
+											print(e)
+									return
+									#language = english
+							else:
+								img = Image.open(image_path)
+								width, height = img.size
+								left = width / 5
+								top = height / 4
+								right = width
+								bottom = height
+								img = img.crop((left, top, right, bottom))
+								img = img.convert('L')  # convert image to monochrome
+								img = img.point(lambda p: p > 100 and 255)
+								text = pytesseract.image_to_string(img)
+								#plt.imshow(img)
+								#plt.show()
+								#print(text[:-1])
+								try:
+									result = re.search('has won(.*)p', text)
+									if result == None:
+										points2 = "0"
+										#print(text)
+									else:
+										points2 = result.group(1)
+									if "x" in points2:
+										points2 = points2.split("x")
+										points2 = points2[0]
+										points2 = points2.strip(" ")
+										points2 = points2.strip('.')
+										points2 = points2.strip('/')
+										points2 = int(points2)
+										points2 = points2 * 2
+										if(points2 > 1100):
+											await channel.send(language[176].format(user))
+											os.remove(attachment.filename)
+											return
+									else:
+										points2 = points2.strip(" ")
+										points2 = points2.strip('.')
+										points2 = points2.strip('/')
+										points2 = int(points2)
+										if(points2 > 600):
+											await channel.send(language[176].format(user))
+											os.remove(attachment.filename)
+											return
+								except Exception as e:
+									print("Points error")
+									print(e)
+								if win in text or win2 in text or win3 in text or win4 in text or win5 in text or win6 in text or win7 in text or win8 in text or win9 in text or win10 in text:
+								# Check if clan is not set
+									if clan == "none":
+										mRef = db.reference('/imageChannels/{0}'.format(channel.guild.id))
+										mRef.update({
+										'lastMessage': str(message.id)
+										})
+										os.remove(attachment.filename)
+										await channel.send(language[108].format(a))
+										return
+									else:
+										#print("BEfore win update")
+										#wins = 0
+										ref2 = db.reference('/users/{0}/clans/{1}/wins'.format(user,clan))
+										wins = ref2.get()
+										ref2 = db.reference('/users/{0}/clans/{1}/points'.format(user,clan))
+										try:
+											points = int(ref2.get()) + int(points2)
+											ref2 = db.reference('/users/{0}/clans/{1}'.format(user,clan))
+										except Exception as e:
+											ref2 = db.reference('/users/{0}/clans/{1}'.format(user,clan))
+											points = points2
+										wins = wins + 1
+										ref2.update({
+											'wins': wins,
+											'previous': text[:30],
+											'points': points
+										})
+										mRef = db.reference('/imageChannels/{0}'.format(channel.guild.id))
+										mRef.update({
+										'lastMessage': str(message.id)
+										})
+										os.remove(attachment.filename)
+										await channel.send(language[110].format(user,wins,a))
+										if(message.guild.id == 900982253679702036) and (clan.lower() == "elite"):
+											try:
+												update = await channel.send("e.tracker <@{0}> {1}".format(user,points2))
+												await asyncio.sleep(3)
+												await update.delete()
+											except Exception as e:
+												print(e)
+											return
+					else:
+						os.remove(attachment.filename)
+						z = "do nothing"
+						#print("Invalid image type")
+						#print(attachment.filename)
+		except Exception as e:
+			try:
+				os.remove(attachment.filename)
+			except:
+				do = "nothing"
+			#language = english
+			if isinstance(e, discord.ext.commands.MessageNotFound):
+				await channel.send(language[111].format(a))
+				mRef = db.reference('/imageChannels/{0}'.format(channel.guild.id))
+				mRef.update({
+				'lastMessage': str(message2)
+				})
+			elif isinstance(e, discord.ext.commands.BotMissingPermissions):
+				ref = db.reference('/imageChannels/{0}'.format(channel.id))
+				ref.delete()
+				try:
+					await channel.send(language[112].format('<@138752093308583936>',a))
+				except:
+					print("The channel {0} in guild {1}".format(channel.id,channel.guild.name))
+			else:
+				#print("Channel then guild id")
+				#print(channel.id)
+				#print(channel.guild.id)
+				mRef = db.reference('/imageChannels/{0}'.format(channel.guild.id))
+				mRef.update({
+				'lastMessage': str(message2)
+				})
+				#await channel.send("Uh oh, something went wrong! Please harrass your local Ryo5678 to fix it.")
+				#print("imageTrack loops = {0}".format(i))
+				#print(e)
+			#await ctx.send("!imageTrack")	
+@bot.command(pass_context = True)
+@commands.has_permissions(administrator=True)
+@commands.cooldown(1, 600, commands.BucketType.user)
+async def imageTrack(ctx):
+	# Get/Set Language
+	user = ctx.message.author.id
+	a = ''
+	c = ''
+	s = ''
+	j = ''
+	ref2 = db.reference('/users/{0}/lang'.format(user))
+	if ref2.get() == "french":
+		language = french
+		a = "\u00e8"
+		c = "\u00e7"
+		s = "\u00e0"
+		j = "\u00ee"
+	if ref2.get() == "english":
+		language = english
+	if ref2.get() == "russian":
+		language = russian
+	if ref2.get() == "turkish":
+		language = turkish
+	if ref2.get() == None:
+		language = english
+	guild = ctx.message.guild.id
+	ref = db.reference('/imageChannels/{0}'.format(guild))
+	if ref.get() != None:
+		await ctx.send(language[113].format(a,s,j))
+	else:
+		ref = db.reference('/imageChannels/{0}'.format(guild))
+		ref.update({
+		'channelID': "{0}".format(ctx.channel.id),
+		'lastMessage': str(ctx.message.id)
+		})
+		channel = bot.get_channel(ctx.channel.id)
+		new_task = tasks.loop(seconds=5.0,count=None,reconnect=True)(imagelooper)
+		new_task.start(channel)
+		await ctx.send(language[114].format(a,j))
+	await ctx.message.delete()
+#-------------------------------------------------------------------------------
+#------------------------------- RUN LINE --------------------------------------
+#-------------------------------------------------------------------------------
+bot.run('Token goes here', bot=True, reconnect=True)
