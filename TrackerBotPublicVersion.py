@@ -21,20 +21,20 @@ from pytesseract import pytesseract
 import numpy as np
 from matplotlib import pyplot as plt, ticker as ticker, dates as mdates
 from discord.ext.commands import CommandNotFound, MissingPermissions, MessageNotFound, NotOwner, BotMissingPermissions, CommandOnCooldown
-path_to_tesseract = r"Tesseract.exe here"
+path_to_tesseract = r"Tesseract.exe location here"
 #from threading import Thread
 intents = discord.Intents.default()
 intents.messages = True
 intents.members = True
 
 creds = service_account.Credentials.from_service_account_file(
-    'Google credentials here')
+    'Google credentials json here')
 
 
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
 # The ID and range of a sample spreadsheet.
-SPREADSHEET_ID = 'Google sheet id here'
+SPREADSHEET_ID = 'Google sheet ID here'
 RANGE_NAME = 'A2'
 
 bot = commands.Bot(command_prefix="t!", case_insensitive=True, activity=discord.Game(name="t!help for commands"), status=discord.Status.online,help_command=None,intents=intents)
@@ -43,29 +43,18 @@ bot = commands.Bot(command_prefix="t!", case_insensitive=True, activity=discord.
 # List of removeWins admins
 winAdmins = ((138752093308583936,"ELITE"),(524835935276498946,"ELITE"),(746381696139788348,"ISLAM"),(735145539494215760,"ISLAM"),(514953130178248707,"RL"))
 	
-database_url = "Firebase database url here"
+database_url = "Firebase URL here"
 
-cred = firebase_admin.credentials.Certificate('Firebase credentials here')
+cred = firebase_admin.credentials.Certificate('Firebase credentials json here')
 databaseApp = firebase_admin.initialize_app(cred, { 'databaseURL' : database_url})
-
-textfile = open('ru-strings.txt', 'r', encoding="utf8")
-russian = textfile.read().splitlines()
-textfile.close()
-
-textfile = open('en-strings.txt', 'r')
-english = textfile.read().splitlines()
-textfile.close()
-
-textfile = open('fr-strings.txt', 'r', encoding="utf8")
-french = textfile.read().splitlines()
-textfile.close()
-
-textfile = open('tr-strings.txt', 'r', encoding="utf8")
-turkish = textfile.read().splitlines()
-textfile.close()
 
 #global message3
 counter = 1
+
+#English
+textfile = open('en-strings.txt', 'r')
+english = textfile.read().splitlines()
+textfile.close()
     
 #-------------------------------------------------------------------------------
 #------------------------------ ON READY EVENT ---------------------------------
@@ -74,7 +63,7 @@ counter = 1
 @bot.event
 async def on_ready():
 	print('We have logged in as {0.user}'.format(bot))
-	
+	global LangCog
 	global counter
 	#counter = counter + 1
 	# if counter == 1:
@@ -82,12 +71,15 @@ async def on_ready():
 	if counter == 1:
 		try:
 			bot.load_extension("Error")
+			print("Error loaded")
 			bot.load_extension("Poll")
+			print("Poll loaded")
+			bot.load_extension("LangCog")
+			print("Lang loaded")
+			LangCog = bot.get_cog("LangCog")
 			clanRanker.start()
 		except Exception as e:
 			print(".start() error")
-			if str(e) == "object Nonetype can't be used in 'await' expression":
-				print("found")
 			print(e)
 		ref = db.reference('/imageChannels')
 		info = ref.get()
@@ -123,6 +115,7 @@ async def on_ready():
 				print(e)
 				if isinstance(e, discord.ext.commands.BotMissingPermissions):
 					try:
+						language = english
 						await channel.send(language[0])
 						print("test")
 					except Exception as e:
@@ -159,17 +152,7 @@ async def lag(ctx):
 async def joinEvent(ctx):
 	# Get/Set Language
 	user = ctx.message.author.id
-	ref2 = db.reference('/users/{0}/lang'.format(user))
-	if ref2.get() == "french":
-		language = french
-	if ref2.get() == "english":
-		language = english
-	if ref2.get() == "russian":
-		language = russian
-	if ref2.get() == "turkish":
-		language = turkish
-	if ref2.get() == None:
-		language = english
+	language = LangCog.languagePicker(user)
 	# Gather discord user and server information
 	user = ctx.message.author.id
 	guild = ctx.message.guild.id
@@ -219,23 +202,7 @@ async def joinEvent(ctx):
 async def ahelp(ctx):
 	# Get/Set Language
 	user = ctx.message.author.id
-	a = ''
-	c = ''
-	s = ''
-	ref2 = db.reference('/users/{0}/lang'.format(user))
-	if ref2.get() == "french":
-		language = french
-		s = "D\u00e8"
-		a = "\u00e8"
-		c = "\u00e7"
-	if ref2.get() == "english":
-		language = english
-	if ref2.get() == "russian":
-		language = russian
-	if ref2.get() == "turkish":
-		language = turkish
-	if ref2.get() == None:
-		language = english
+	language = LangCog.languagePicker(user)
 	sheet = discord.Embed(title=language[5], description=language[6], color=0x0000FF)
 	sheet.add_field(name=language[7], value=language[8] + '\n' + language[9], inline=False)
 	sheet.add_field(name=language[10], value=language[11] + '\n' + language[12], inline=False)
@@ -258,23 +225,7 @@ async def ahelp(ctx):
 async def help(ctx):
 	# Get/Set Language
 	user = ctx.message.author.id
-	a = ''
-	c = ''
-	s = ''
-	ref2 = db.reference('/users/{0}/lang'.format(user))
-	if ref2.get() == "french":
-		language = french
-		s = "D\u00e8"
-		a = "\u00e8"
-		c = "\u00e7"
-	if ref2.get() == "english":
-		language = english
-	if ref2.get() == "russian":
-		language = russian
-	if ref2.get() == "turkish":
-		language = turkish
-	if ref2.get() == None:
-		language = english
+	language = LangCog.languagePicker(user)
 	sheet2 = discord.Embed(title=language[47], description=language[48], color=0x0000FF)
 	sheet2.add_field(name=language[49], value=language[50], inline=False)
 	sheet2.add_field(name=language[51], value=language[52], inline=False)
@@ -305,23 +256,8 @@ async def help(ctx):
 async def setup(ctx):
 	# Get/Set Language
 	user = ctx.message.author.id
-	a = ''
-	c = ''
-	s = ''
-	ref2 = db.reference('/users/{0}/lang'.format(user))
-	if ref2.get() == "french":
-		language = french
-		s = "D\u00e8"
-		a = "\u00e8"
-		c = "\u00e7"
-	if ref2.get() == "english":
-		language = english
-	if ref2.get() == "russian":
-		language = russian
-	if ref2.get() == "turkish":
-		language = turkish
-	if ref2.get() == None:
-		language = english
+	language = LangCog.languagePicker(user)
+	# Send text wall 
 	await ctx.send(language[79] + '\n' + language[80] + '\n' + language[81])
 	await asyncio.sleep(5)
 	await ctx.send(language[82] + '\n' + language[83] + '\n' + language[84] + '\n' + language[85] + '\n' + language[86])
@@ -347,35 +283,18 @@ async def setup(ctx):
 async def updates(ctx):
 	# Get/Set Language
 	user = ctx.message.author.id
-	a = ''
-	c = ''
-	s = ''
-	j = ''
-	ref2 = db.reference('/users/{0}/lang'.format(user))
-	if ref2.get() == "french":
-		language = french
-		a = "\u00e8"
-		c = "\u00e7"
-		s = "\u00e0"
-		j = "\u00ee"
-	if ref2.get() == "english":
-		language = english
-	if ref2.get() == "russian":
-		language = russian
-	if ref2.get() == "turkish":
-		language = turkish
-	if ref2.get() == None:
-		language = english
+	language = LangCog.languagePicker(user)
+	# Get guild id
 	guild = ctx.message.guild.id
 	ref = db.reference('/channels/{0}'.format(guild))
 	if ref.get() != None:
-		await ctx.send(language[115].format(a,s,j))
+		await ctx.send(language[115])
 	else:
 		ref = db.reference('/channels'.format(guild))
 		ref.update({
 		guild: "{0}".format(ctx.channel.id)
 		})
-		await ctx.send(language[116].format(a,s,j))
+		await ctx.send(language[116])
 	await ctx.message.delete()
 #-------------------------------------------------------------------------------
 #------------------------------ SET Solo Elo Score -----------------------------
@@ -384,35 +303,20 @@ async def updates(ctx):
 @commands.cooldown(1, 60, commands.BucketType.user)
 async def setSolo(ctx,elo):
 	user = ctx.message.author.id
+	user2 = ctx.message.author.id
 	# Get/Set Language
-	a = ''
-	s = ''
-	j = ''
-	ref2 = db.reference('/users/{0}/lang'.format(user))
-	if ref2.get() == "french":
-		language = french
-		a = "\u00e8"
-		s = "\u00e0"
-		j = "\u00ee"
-	if ref2.get() == "english":
-		language = english
-	if ref2.get() == "russian":
-		language = russian
-	if ref2.get() == "turkish":
-		language = turkish
-	if ref2.get() == None:
-		language = english
+	language = LangCog.languagePicker(user)
 	guild = ctx.message.guild.id
 	num = float(elo)
 	if num >= 500 or num < 0:
-		await ctx.send(language[117].format(a,s))
+		await ctx.send(language[117])
 	else:
 		guild = bot.get_guild(guild)
 		username = ((await guild.fetch_member(user)).nick)
 		if username == None:
 			username = ((await guild.fetch_member(user)).name)
 			
-		await ctx.send(language[118].format(a,s,j))
+		await ctx.send(language[118])
 		
 		fRef = db.reference('/users/{0}'.format(user))
 		if fRef.get() == None:
@@ -431,12 +335,12 @@ async def setSolo(ctx,elo):
 			'name': username,
 			'onevsone': num
 			})
-			await ctx.send(embed=profileDisplay(ctx,user,username))
+			await ctx.send(embed=profileDisplay(ctx,user,user2,username))
 		else:
 			fRef.update({
 			'onevsone': num
 			})
-			await ctx.send(embed=profileDisplay(ctx,user,username))
+			await ctx.send(embed=profileDisplay(ctx,user,user2,username))
 #-------------------------------------------------------------------------------
 #--------------------------------- SET Clan ------------------------------------
 #-------------------------------------------------------------------------------	
@@ -444,6 +348,7 @@ async def setSolo(ctx,elo):
 @commands.cooldown(1, 60, commands.BucketType.user)
 async def setclan(ctx,name):
 	# Get user ID and guild ID
+	user2 = ctx.message.author.id
 	user = ctx.message.author.id
 	guild = ctx.message.guild.id
 	# Convert clan name for database
@@ -482,7 +387,7 @@ async def setclan(ctx,name):
 		'name': username,
 		'onevsone': num
 		})
-		await ctx.send(embed=profileDisplay(ctx,user,username))
+		await ctx.send(embed=profileDisplay(ctx,user,user2,username))
 	else:
 		fRef = db.reference('/users/{0}/clans'.format(user))
 		info = fRef.get()
@@ -503,7 +408,7 @@ async def setclan(ctx,name):
 			fRef.update({
 			'currentclan': clan,
 			})
-		await ctx.send(embed=profileDisplay(ctx,user,username))
+		await ctx.send(embed=profileDisplay(ctx,user,user2,username))
 
 #-------------------------------------------------------------------------------
 #------------------------------ Remove Clan Wins ----------------------------
@@ -513,21 +418,7 @@ async def removeWins(ctx,name: discord.Member,wins):
 	# Get/Set Language
 	user = name.id
 	user2 = ctx.message.author.id
-	a = ''
-	s = ''
-	ref2 = db.reference('/users/{0}/lang'.format(user2))
-	if ref2.get() == "french":
-		language = french
-		a = "\u00e8"
-		s = "\u00e0"
-	if ref2.get() == "english":
-		language = english
-	if ref2.get() == "russian":
-		language = russian
-	if ref2.get() == "turkish":
-		language = turkish
-	if ref2.get() == None:
-		language = english
+	language = LangCog.languagePicker(user2)
 	# Assign/Retrieve command caller ID
 	caller = ctx.author.id
 	# Check if caller is approved user
@@ -535,7 +426,7 @@ async def removeWins(ctx,name: discord.Member,wins):
 		if caller == winAdmins[x][0]:
 			clan = winAdmins[x][1]
 	if clan == None:
-		await ctx.send(language[121].format(a,s))
+		await ctx.send(language[121])
 		return
 	# Check if integer discord ID was provided
 	try:
@@ -568,29 +459,16 @@ async def removeWins(ctx,name: discord.Member,wins):
 	ref.update({
 		'wins': total
 	})
-	await ctx.send(language[125].format(total,a))
+	await ctx.send(language[125].format(total))
 
 #-------------------------------------------------------------------------------
 #------------------------------ PROFILE COMMAND --------------------------------
 #-------------------------------------------------------------------------------
 
-def profileDisplay(ctx,user,username):
+def profileDisplay(ctx,user,user2,username):
 	# Get/Set Language
-	user3 = ctx.message.author.id
-	ref2 = db.reference('/users/{0}/lang'.format(user3))
-	lang = ref2.get()
-	if lang == "french":
-		language = french
-	if lang == "english":
-		language = english
-	if lang == "russian":
-		language = russian
-	if lang == "turkish":
-		language = turkish
-	if lang == None:
-		language = english
+	language = LangCog.languagePicker(user2)
 	# Get user ID
-	user2 = ctx.message.author.id
 	ref = db.reference('/users/{0}'.format(user))
 	info = ref.get()
 	
@@ -603,6 +481,7 @@ def profileDisplay(ctx,user,username):
 		br = infoList[0][1]
 		ovo = infoList[4][1]
 		clan = infoList[1][1]['currentclan']
+		lang = infoList[2][1]
 	else:
 		clans = infoList[1][1]
 		clans = list(clans.items())
@@ -651,6 +530,7 @@ def profileDisplay(ctx,user,username):
 		try:
 			br = infoList[0][1]
 			ovo = infoList[4][1]
+			lang = infoList[2][1]
 			clan = infoList[1][1]['currentclan']
 			if '.' or '$' or'#' or '[' or '/' or ']' or '?' in clan:
 				clan = clan.replace('.', 'period5')
@@ -669,6 +549,8 @@ def profileDisplay(ctx,user,username):
 			print(e)
 			print("first")
 	try:
+		if(lang == None):
+			lang = "english"
 		guild = ctx.message.guild.id
 		# Profile Embed
 		sheet = discord.Embed(title=language[129], description=language[130].format(username), color=0x0000FF)
@@ -688,6 +570,7 @@ def profileDisplay(ctx,user,username):
 @commands.cooldown(1, 60, commands.BucketType.user)
 async def profile(ctx, name: discord.Member = None):
 	# check if user wants to display self or other
+	user2 = ctx.message.author.id
 	if name == None:
 		user = ctx.message.author.id
 	else:
@@ -727,7 +610,7 @@ async def profile(ctx, name: discord.Member = None):
 		'onevsone': 0
 		})
 		# Display profile
-		await ctx.send(embed=profileDisplay(ctx,user,username))
+		await ctx.send(embed=profileDisplay(ctx,user,user2,username))
 	else:
 		# Get name from database rather than discord. OR set it if not already in database
 		ref4 = db.reference('/users/{0}/name'.format(user))
@@ -740,10 +623,10 @@ async def profile(ctx, name: discord.Member = None):
 			'name': username
 			})
 			# Display profile
-			await ctx.send(embed=profileDisplay(ctx,user,username))
+			await ctx.send(embed=profileDisplay(ctx,user,user2,username))
 		else:
 			# Display profile
-			await ctx.send(embed=profileDisplay(ctx,user,username))
+			await ctx.send(embed=profileDisplay(ctx,user,user2,username))
 
 
 @bot.command(pass_context = True)
@@ -751,21 +634,7 @@ async def profile(ctx, name: discord.Member = None):
 async def clanboard(ctx,clan):
 	# Get/Set Language
 	user = ctx.message.author.id
-	a = ''
-	s = ''
-	ref2 = db.reference('/users/{0}/lang'.format(user))
-	if ref2.get() == "french":
-		language = french
-		a = "\u00e8"
-		s = "\u00e0"
-	if ref2.get() == "english":
-		language = english
-	if ref2.get() == "russian":
-		language = russian
-	if ref2.get() == "turkish":
-		language = turkish
-	if ref2.get() == None:
-		language = english
+	language = LangCog.languagePicker(user)
 	try:
 		clan.strip("[]")
 		clan = clan.replace('.', 'period5')
@@ -793,9 +662,9 @@ async def clanboard(ctx,clan):
 			users2.sort(key=lambda x: int(x[1]['clans']['{0}'.format(clan)]['wins']))
 			users2.reverse()
 			ladder = discord.Embed(title=language[135].format(clan), description=language[136], color=0x33DDFF)
-			ladder2 = discord.Embed(title=language[135].format(clan), description=language[137].format(s), color=0x33DDFF)
-			ladder3 = discord.Embed(title=language[135].format(clan), description=language[138].format(s), color=0x33DDFF)
-			ladder4 = discord.Embed(title=language[135].format(clan), description=language[139].format(s), color=0x33DDFF)
+			ladder2 = discord.Embed(title=language[135].format(clan), description=language[137], color=0x33DDFF)
+			ladder3 = discord.Embed(title=language[135].format(clan), description=language[138], color=0x33DDFF)
+			ladder4 = discord.Embed(title=language[135].format(clan), description=language[139], color=0x33DDFF)
 			# One Ladder
 			if x <= 25:
 				for i in range(x):
@@ -804,7 +673,7 @@ async def clanboard(ctx,clan):
 				msg = await ctx.send(embed=ladder)
 			# Two Ladders
 			elif x <= 50:
-				await ctx.send(language[142].format(a))
+				await ctx.send(language[142])
 				for i in range(25):
 					name = await bot.fetch_user(users2[i][0])
 					ladder.add_field(name=language[140].format(i+1,name.name), value=language[141].format(users2[i][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
@@ -815,7 +684,7 @@ async def clanboard(ctx,clan):
 				msg2 = await ctx.send(embed=ladder2)
 			# Three Ladders
 			elif x <= 75:
-				await ctx.send(language[143].format(a))
+				await ctx.send(language[143])
 				for i in range(25):
 					name = await bot.fetch_user(users2[i][0])
 					ladder.add_field(name=language[140].format(i+1,name.name), value=language[141].format(users2[i][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
@@ -830,7 +699,7 @@ async def clanboard(ctx,clan):
 				msg3 = await ctx.send(embed=ladder3)
 			# Four Ladders
 			elif x <= 100:
-				await ctx.send(language[144].format(a))
+				await ctx.send(language[144])
 				for i in range(25):
 					name = await bot.fetch_user(users2[i][0])
 					ladder.add_field(name=language[140].format(i+1,name.name), value=language[141].format(users2[i][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
@@ -849,7 +718,7 @@ async def clanboard(ctx,clan):
 				msg4 = await ctx.send(embed=ladder4)
 			# Catch if members is > 100. Four ladder maximum
 			else:
-				await ctx.send(language[145].format(a,s))
+				await ctx.send(language[145])
 				for i in range(25):
 					name = await bot.fetch_user(users2[i][0])
 					ladder.add_field(name=language[140].format(i+1,name.name), value=language[141].format(users2[i][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
@@ -867,27 +736,20 @@ async def clanboard(ctx,clan):
 					ladder4.add_field(name=language[140].format(i+76,name.name), value=language[141].format(users2[i+75][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
 				msg4 = await ctx.send(embed=ladder4)
 		except Exception as e:
-			await ctx.send(language[146].format('<@138752093308583936>',a))
+			await ctx.send(language[146].format('<@138752093308583936>'))
 			print("Clanboard command call failed.")
 			print(e)
 	except:
-		await ctx.send(language[147].format(a))
+		await ctx.send(language[147])
 #-------------------------------------------------------------------------------
 #------------------------- 1v1 LEADERBOARD COMMAND -----------------------------
 #-------------------------------------------------------------------------------
 @loop(seconds=30,count=None,reconnect=True)
-async def sololoop(ctx,clan,l):
+async def sololoop(ctx,clan,user):
 	try:
-		a = ''
-		if (l == "french"):
-			a = "\u00e8"
-			language = french
-		elif (l == "russian"):
-			language = russian
-		elif (l == "turkish"):
-			language = turkish
-		else:
-			language = english
+		# Get/Set language
+		language = LangCog.languagePicker(user)
+		# Get references
 		ref = db.reference('/users')
 		refList = ref.order_by_child('onevsone').limit_to_last(25).get()
 		scores = list(refList.items())
@@ -899,7 +761,7 @@ async def sololoop(ctx,clan,l):
 		msg = await ctx.send(embed=ladder)
 	except Exception as e:
 		print(e)
-		await ctx.send(language[146].format('<@138752093308583936>',a))
+		await ctx.send(language[146].format('<@138752093308583936>'))
 		check = False
 		print("Soloboard command call failed before loop started.")
 
@@ -908,47 +770,16 @@ async def sololoop(ctx,clan,l):
 async def soloboard(ctx,clan):
 	# Get/Set Language
 	user = ctx.message.author.id
-	ref2 = db.reference('/users/{0}/lang'.format(user))
-	if ref2.get() == "french":
-		language = french
-		l = "french"
-	if ref2.get() == "english":
-		l = "english"
-		language = english
-	if ref2.get() == "russian":
-		l = "russian"
-		language = russian
-	if ref2.get() == "turkish":
-		l = "turkish"
-		language = turkish
-	if ref2.get() == None:
-		l = "english"
-		language = english
+	# Get guild ID
 	guild = ctx.message.guild.id
-	sololoop.start(ctx,clan,language)
+	sololoop.start(ctx,clan,user)
 
 @bot.command(pass_context = True)
 @commands.cooldown(1, 600, commands.BucketType.user)
 async def oneboard(ctx,x):
 	# Get/Set Language
 	user = ctx.message.author.id
-	a = ''
-	c = ''
-	s = ''
-	ref2 = db.reference('/users/{0}/lang'.format(user))
-	if ref2.get() == "french":
-		language = french
-		s = "D\u00e8"
-		a = "\u00e8"
-		c = "\u00e7"
-	if ref2.get() == "english":
-		language = english
-	if ref2.get() == "russian":
-		language = russian
-	if ref2.get() == "turkish":
-		language = turkish
-	if ref2.get() == None:
-		language = english
+	language = LangCog.languagePicker(user)
 	try:
 		x = int(x)
 		guild = ctx.message.guild.id
@@ -1110,19 +941,8 @@ async def clanRanker():
 async def top50(ctx):	
 	# Get/Set Language
 	user = ctx.message.author.id
-	s = ''
-	ref2 = db.reference('/users/{0}/lang'.format(user))
-	if ref2.get() == "french":
-		language = french
-		s = "\u00e0"
-	if ref2.get() == "english":
-		language = english
-	if ref2.get() == "russian":
-		language = russian
-	if ref2.get() == "turkish":
-		language = turkish
-	if ref2.get() == None:
-		language = english
+	language = LangCog.languagePicker(user)
+	# Get scores
 	ref = db.reference('/{0}/clans'.format(780723109128962070))
 	clanList = ref.order_by_child('score').limit_to_last(50).get()
 	clanList2 = list(clanList.items())
@@ -1139,7 +959,7 @@ async def top50(ctx):
 	#	await ctx.send(nonembed)
 	#else:
 	ladder = discord.Embed(title=language[152], description=language[136], color=0x33DDFF)
-	ladder2 = discord.Embed(title=language[152], description=language[137].format(s), color=0x33DDFF)
+	ladder2 = discord.Embed(title=language[152], description=language[137], color=0x33DDFF)
 	# First Ladder
 	for i in range(25):
 		ladder.add_field(name=language[149].format(i+1) + clanList2[i][0], value=clanList2[i][1]['score'], inline=True)
@@ -1156,17 +976,8 @@ async def top50(ctx):
 async def top25(ctx):
 	# Get/Set Language
 	user = ctx.message.author.id
-	ref2 = db.reference('/users/{0}/lang'.format(user))
-	if ref2.get() == "french":
-		language = french
-	if ref2.get() == "english":
-		language = english
-	if ref2.get() == "russian":
-		language = russian
-	if ref2.get() == "turkish":
-		language = turkish
-	if ref2.get() == None:
-		language = english
+	language = LangCog.languagePicker(user)
+	# Get scores
 	ref = db.reference('/{0}/clans'.format(780723109128962070))
 	clanList = ref.order_by_child('score').limit_to_last(25).get()
 	clanList2 = list(clanList.items())
@@ -1184,17 +995,7 @@ async def top25(ctx):
 async def top(ctx):
 	# Get/Set Language
 	user = ctx.message.author.id
-	ref2 = db.reference('/users/{0}/lang'.format(user))
-	if ref2.get() == "french":
-		language = french
-	if ref2.get() == "english":
-		language = english
-	if ref2.get() == "russian":
-		language = russian
-	if ref2.get() == "turkish":
-		language = turkish
-	if ref2.get() == None:
-		language = english
+	language = LangCog.languagePicker(user)
 	await ctx.send(language[154])
 
 #-------------------------------------------------------------------------------
@@ -1205,27 +1006,16 @@ async def top(ctx):
 async def top100(ctx):
 	# Get/Set Language
 	user = ctx.message.author.id
-	s = ''
-	ref2 = db.reference('/users/{0}/lang'.format(user))
-	if ref2.get() == "french":
-		language = french
-		s = "\u00e0"
-	if ref2.get() == "english":
-		language = english
-	if ref2.get() == "russian":
-		language = russian
-	if ref2.get() == "turkish":
-		language = turkish
-	if ref2.get() == None:
-		language = english
+	language = LangCog.languagePicker(user)
+	# Get scores
 	ref = db.reference('/{0}/clans'.format(780723109128962070))
 	clanList = ref.order_by_child('score').limit_to_last(100).get()
 	clanList2 = list(clanList.items())
 	clanList2.reverse()
 	ladder = discord.Embed(title=language[152], description=language[136], color=0x33DDFF)
-	ladder2 = discord.Embed(title=language[152], description=language[137].format(s), color=0x33DDFF)
-	ladder3 = discord.Embed(title=language[152], description=language[138].format(s), color=0x33DDFF)
-	ladder4 = discord.Embed(title=language[152], description=language[139].format(s), color=0x33DDFF)
+	ladder2 = discord.Embed(title=language[152], description=language[137], color=0x33DDFF)
+	ladder3 = discord.Embed(title=language[152], description=language[138], color=0x33DDFF)
+	ladder4 = discord.Embed(title=language[152], description=language[139], color=0x33DDFF)
 	# For top 200 clans
 	#ladder5 = discord.Embed(title="Global Clan Rankings", description="**Current Top 101 to 125**", color=0x33DDFF)
 	#ladder6 = discord.Embed(title="Global Clan Rankings", description="**Current Top 126 to 150**", color=0x33DDFF)
@@ -1268,23 +1058,7 @@ async def top100(ctx):
 async def clan(ctx,clan):
 	# Get/Set Language
 	user = ctx.message.author.id
-	a = ''
-	s = ''
-	j = ''
-	ref2 = db.reference('/users/{0}/lang'.format(user))
-	if ref2.get() == "french":
-		language = french
-		a = "\u00e8"
-		s = "\u00e0"
-		j = "\u00ee"
-	if ref2.get() == "english":
-		language = english
-	if ref2.get() == "russian":
-		language = russian
-	if ref2.get() == "turkish":
-		language = turkish
-	if ref2.get() == None:
-		language = english
+	language = LangCog.languagePicker(user)
 	try:
 		clan.strip("[]")
 		clan = clan.replace('.', 'period5')
@@ -1298,7 +1072,7 @@ async def clan(ctx,clan):
 		ref2 = db.reference('/{0}/clans/{1}'.format(780723109128962070,clan))
 		clanData = ref2.get()
 		if (clanData == None):
-			await ctx.send(language[156].format(clan,a))
+			await ctx.send(language[156].format(clan))
 		else:
 			# Set times to search back 1 week
 			timeDif = timedelta(7)
@@ -1318,7 +1092,7 @@ async def clan(ctx,clan):
 				# Make plot for score vs time
 				plt.xlabel(language[157])
 				plt.ylabel(language[158])
-				plt.title(language[159].format(a,s))
+				plt.title(language[159])
 				times = list()
 				scores = list()
 				for i in range(len(games)):
@@ -1352,7 +1126,7 @@ async def clan(ctx,clan):
 					print(clan)
 				plt.clf()
 			except:
-				await ctx.send(language[161].format(a,j))
+				await ctx.send(language[161])
 			#print(games[x - 1])
 			try:
 				y = clanData['wins']
@@ -1374,12 +1148,12 @@ async def clan(ctx,clan):
 			clan = clan.replace('QMARK5', '?')
 			
 			score = clanData['score']
-			await ctx.send(language[162].format(clan,score,x,y,a))
+			await ctx.send(language[162].format(clan,score,x,y))
 	except Exception as e:
 		print(e)
 		# Catch missing message permission
 		try:
-			await ctx.send(language[153].format(a))
+			await ctx.send(language[153])
 		except:
 			try:
 				print("{0} id {1} name ".format(ctx.message.guild.id,ctx.message.guild.name))
@@ -1537,23 +1311,7 @@ async def say(ctx,*,text):
 async def add(ctx):
 	# Get/Set Language
 	user = ctx.message.author.id
-	a = ''
-	c = ''
-	s = ''
-	ref2 = db.reference('/users/{0}/lang'.format(user))
-	if ref2.get() == "french":
-		language = french
-		s = "D\u00e8"
-		a = "\u00e8"
-		c = "\u00e7"
-	if ref2.get() == "english":
-		language = english
-	if ref2.get() == "russian":
-		language = russian
-	if ref2.get() == "turkish":
-		language = turkish
-	if ref2.get() == None:
-		language = english
+	language = LangCog.languagePicker(user)
 	await ctx.send(language[166])
 	await ctx.send(language[167])
 		
@@ -1565,23 +1323,7 @@ async def add(ctx):
 async def lc(ctx):
 	# Get/Set Language
 	user = ctx.message.author.id
-	a = ''
-	c = ''
-	s = ''
-	ref2 = db.reference('/users/{0}/lang'.format(user))
-	if ref2.get() == "french":
-		language = french
-		s = "D\u00e8"
-		a = "\u00e8"
-		c = "\u00e7"
-	if ref2.get() == "english":
-		language = english
-	if ref2.get() == "russian":
-		language = russian
-	if ref2.get() == "turkish":
-		language = turkish
-	if ref2.get() == None:
-		language = english
+	language = LangCog.languagePicker(user)
 	# Post to channel
 	await ctx.send(language[168],file=discord.File("StatisticsLCEvent.pdf"))
 #-------------------------------------------------------------------------------
@@ -1592,18 +1334,7 @@ async def lc(ctx):
 async def compare(ctx,*,clans):
 	# Get/Set Language
 	user = ctx.message.author.id
-	ref2 = db.reference('/users/{0}/lang'.format(user))
-	if ref2.get() == "french":
-		language = french
-
-	if ref2.get() == "english":
-		language = english
-	if ref2.get() == "russian":
-		language = russian
-	if ref2.get() == "turkish":
-		language = turkish
-	if ref2.get() == None:
-		language = english
+	language = LangCog.languagePicker(user)
 	plt.clf()
 	await ctx.send(language[3])
 	clanList = clans.split()
@@ -1828,26 +1559,7 @@ async def data(ctx):
 async def disable(ctx):
 	# Get/Set Language
 	user = ctx.message.author.id
-	a = ''
-	c = ''
-	s = ''
-	j = ''
-	ref2 = db.reference('/users/{0}/lang'.format(user))
-	if ref2.get() == "french":
-		language = french
-		a = "\u00e8"
-		c = "\u00e7"
-		s = "\u00e0"
-		j = "\u00ee"
-	if ref2.get() == "english":
-		language = english
-	if ref2.get() == "russian":
-		language = russian
-	if ref2.get() == "turkish":
-		language = turkish
-	if ref2.get() == None:
-		language = english
-
+	language = LangCog.languagePicker(user)
 	# Check for existing opt status
 	opt = db.reference('/users/{0}/opt'.format(user))
 	if (opt.get() == True):
@@ -1864,25 +1576,7 @@ async def disable(ctx):
 async def enable(ctx):
 	# Get/Set Language
 	user = ctx.message.author.id
-	a = ''
-	c = ''
-	s = ''
-	j = ''
-	ref2 = db.reference('/users/{0}/lang'.format(user))
-	if ref2.get() == "french":
-		language = french
-		a = "\u00e8"
-		c = "\u00e7"
-		s = "\u00e0"
-		j = "\u00ee"
-	if ref2.get() == "english":
-		language = english
-	if ref2.get() == "russian":
-		language = russian
-	if ref2.get() == "turkish":
-		language = turkish
-	if ref2.get() == None:
-		language = english
+	language = LangCog.languagePicker(user)
 	# Check for existing opt status
 	opt = db.reference('/users/{0}/opt'.format(user))
 	if (opt.get() == False):
@@ -1902,17 +1596,7 @@ async def enable(ctx):
 async def donate(ctx):
 	# Get/Set Language
 	user = ctx.message.author.id
-	ref2 = db.reference('/users/{0}/lang'.format(user))
-	if ref2.get() == "french":
-		language = french
-	if ref2.get() == "english":
-		language = english
-	if ref2.get() == "russian":
-		language = russian
-	if ref2.get() == "turkish":
-		language = turkish
-	if ref2.get() == None:
-		language = english
+	language = LangCog.languagePicker(user)
 	try:
 		await ctx.send(language[174])
 	except:
@@ -1924,9 +1608,7 @@ async def donate(ctx):
 @commands.cooldown(1, 30, commands.BucketType.user)
 async def setlanguage(ctx, lang):
 	# List of accepted languages
-	languages = ['english','french','russian','turkish']
-	a = ''
-	c = ''
+	languages = ['english','french','russian','turkish','german']
 	# Get user ID
 	user = ctx.author.id
 	# Get guild
@@ -1970,19 +1652,7 @@ async def setlanguage(ctx, lang):
 			
 		else:
 			# Check for existing language
-			ref2 = db.reference('/users/{0}/lang'.format(user))
-			if ref2.get() == "french":
-				language = french
-				a = "\u00e8"
-				c = "\u00e7"
-			if ref2.get() == "english":
-				language = english
-			if ref2.get() == "russian":
-				language = russian
-			if ref2.get() == "turkish":
-				language = turkish
-			if ref2.get() == None:
-				language = english
+			language = LangCog.languagePicker(user)
 			lang = lang.lower()
 			#print(lang)
 			if lang not in languages:
@@ -1994,16 +1664,7 @@ async def setlanguage(ctx, lang):
 			ref.update({
 			'lang': lang
 			})
-			if lang == "french":
-				language = french
-			if lang == "english":
-				language = english
-			if lang == "russian":
-				language = russian
-			if lang == "turkish":
-				language = turkish
-			if lang == None:
-				language = english
+			language = LangCog.languagePicker(user)
 			print("Issue check, string index of out range")
 			return await ctx.send(language[175].format(lang))
 	except Exception as e:
@@ -2016,17 +1677,7 @@ async def remove(ctx,wins,points = None):
 	try:
 		# Get/Set Language
 		user = ctx.message.author.id
-		ref2 = db.reference('/users/{0}/lang'.format(user))
-		if ref2.get() == "french":
-			language = french
-		if ref2.get() == "english":
-			language = english
-		if ref2.get() == "russian":
-			language = russian
-		if ref2.get() == "turkish":
-			language = turkish
-		if ref2.get() == None:
-			language = english
+		language = LangCog.languagePicker(user)
 		# Check if integer was provided for wins
 		try:
 			wins = int(wins)
@@ -2076,7 +1727,21 @@ async def remove(ctx,wins,points = None):
 	except Exception as e:
 		print(e)
 #-------------------------------------------------------------------------------
-#------------------------------- RUN LINE --------------------------------------
+#----------------------------- Load/Unload Lang Cog ----------------------------
+#-------------------------------------------------------------------------------
+@bot.command(pass_context = True)
+@commands.is_owner()
+async def langSwitch(ctx):
+	try:
+		global LangCog
+		bot.load_extension("LangCog")
+		LangCog = bot.get_cog("LangCog")
+		await ctx.send("Language is online")
+	except commands.ExtensionAlreadyLoaded:
+		bot.unload_extension("LangCog")
+		await ctx.send("Language is offline")
+#-------------------------------------------------------------------------------
+#----------------------------- Load/Unload Poll Cog ----------------------------
 #-------------------------------------------------------------------------------
 @bot.command(pass_context = True)
 @commands.is_owner()
@@ -2131,28 +1796,12 @@ async def imagelooper(channel):
 			#print("Test")
 			user = message.author.id
 			# Get/Set Language
-			a = ''
-			c = ''
-			s = ''
-			ref2 = db.reference('/users/{0}/lang'.format(user))
-			if ref2.get() == "french":
-				language = french
-				a = "\u00e8"
-				c = "\u00e7"
-				s = "\u00e0"
-			if ref2.get() == "english":
-				language = english
-			if ref2.get() == "russian":
-				language = russian
-			if ref2.get() == "turkish":
-				language = turkish
-			if ref2.get() == None:
-				language = english
+			language = LangCog.languagePicker(user)
 			#except Exception as e:
 				#print(e)
 			opt = db.reference('/users/{0}/opt'.format(user))
 			if (opt.get() == True):
-				await channel.send(language[106].format(a))
+				await channel.send(language[106])
 				return
 			user = None
 			guild = None
@@ -2161,7 +1810,7 @@ async def imagelooper(channel):
 			else:
 				if len(message.attachments) > 0:
 					if len(message.attachments) > 1:
-						await channel.send(language[107].format(a))
+						await channel.send(language[107])
 					attachment = message.attachments[0]
 					if attachment.filename.endswith(".jpg") or attachment.filename.endswith(".jpeg") or attachment.filename.endswith(".png") or attachment.filename.endswith(".webp") or attachment.filename.endswith(".PNG") or attachment.filename.endswith(".JPG") or attachment.filename.endswith(".JPEG"):
 						image = attachment.url
@@ -2177,7 +1826,7 @@ async def imagelooper(channel):
 						#plt.show()
 						pytesseract.tesseract_cmd = path_to_tesseract
 						text = pytesseract.image_to_string(img)
-						print(text[:30])
+						#print(text[:30])
 						user = message.author.id
 						guild = message.guild.id
 						guild = bot.get_guild(guild)
@@ -2205,7 +1854,7 @@ async def imagelooper(channel):
 							'name': username,
 							'onevsone': 0
 							})
-							await channel.send(language[108].format(a))
+							await channel.send(language[108])
 							mRef = db.reference('/imageChannels/{0}'.format(channel.guild.id))
 							mRef.update({
 							'lastMessage': str(message.id)
@@ -2224,7 +1873,7 @@ async def imagelooper(channel):
 							#print(pRef.get() + "test")
 							if pRef.get() != None:
 								if text[:15] == pRef.get():
-									await channel.send(language[109].format(user,a,s))
+									await channel.send(language[109].format(user))
 									print("{0} tried to cheat".format(user))
 									os.remove(attachment.filename)
 									mRef = db.reference('/imageChannels/{0}'.format(channel.guild.id))
@@ -2288,7 +1937,7 @@ async def imagelooper(channel):
 							if win in text or win2 in text or win3 in text or win4 in text or win5 in text or win6 in text or win7 in text or win8 in text or win9 in text or win10 in text:
 								# Check if clan is not set
 								if clan == "none":
-									await channel.send(language[108].format(a))
+									await channel.send(language[108])
 									mRef = db.reference('/imageChannels/{0}'.format(channel.guild.id))
 									mRef.update({
 									'lastMessage': str(message.id)
@@ -2322,7 +1971,7 @@ async def imagelooper(channel):
 									'lastMessage': str(message.id)
 									})
 									os.remove(attachment.filename)
-									await channel.send(language[110].format(user,wins,a))
+									await channel.send(language[110].format(user,wins))
 									if(message.guild.id == 900982253679702036) and (clan.lower() == "elite"):
 										try:
 											update = await channel.send("e.tracker <@{0}> {1}".format(user,points2))
@@ -2385,7 +2034,7 @@ async def imagelooper(channel):
 										'lastMessage': str(message.id)
 										})
 										os.remove(attachment.filename)
-										await channel.send(language[108].format(a))
+										await channel.send(language[108])
 										return
 									else:
 										#print("BEfore win update")
@@ -2410,7 +2059,7 @@ async def imagelooper(channel):
 										'lastMessage': str(message.id)
 										})
 										os.remove(attachment.filename)
-										await channel.send(language[110].format(user,wins,a))
+										await channel.send(language[110].format(user,wins))
 										if(message.guild.id == 900982253679702036) and (clan.lower() == "elite"):
 											try:
 												update = await channel.send("e.tracker <@{0}> {1}".format(user,points2))
@@ -2431,7 +2080,7 @@ async def imagelooper(channel):
 				do = "nothing"
 			#language = english
 			if isinstance(e, discord.ext.commands.MessageNotFound):
-				await channel.send(language[111].format(a))
+				await channel.send(language[111])
 				mRef = db.reference('/imageChannels/{0}'.format(channel.guild.id))
 				mRef.update({
 				'lastMessage': str(message2)
@@ -2440,7 +2089,7 @@ async def imagelooper(channel):
 				ref = db.reference('/imageChannels/{0}'.format(channel.id))
 				ref.delete()
 				try:
-					await channel.send(language[112].format('<@138752093308583936>',a))
+					await channel.send(language[112].format('<@138752093308583936>'))
 				except:
 					print("The channel {0} in guild {1}".format(channel.id,channel.guild.name))
 			else:
@@ -2461,29 +2110,12 @@ async def imagelooper(channel):
 async def imageTrack(ctx):
 	# Get/Set Language
 	user = ctx.message.author.id
-	a = ''
-	c = ''
-	s = ''
-	j = ''
-	ref2 = db.reference('/users/{0}/lang'.format(user))
-	if ref2.get() == "french":
-		language = french
-		a = "\u00e8"
-		c = "\u00e7"
-		s = "\u00e0"
-		j = "\u00ee"
-	if ref2.get() == "english":
-		language = english
-	if ref2.get() == "russian":
-		language = russian
-	if ref2.get() == "turkish":
-		language = turkish
-	if ref2.get() == None:
-		language = english
+	language = LangCog.LangCog.languagePicker(user)
+	# Get guild id
 	guild = ctx.message.guild.id
 	ref = db.reference('/imageChannels/{0}'.format(guild))
 	if ref.get() != None:
-		await ctx.send(language[113].format(a,s,j))
+		await ctx.send(language[113])
 	else:
 		ref = db.reference('/imageChannels/{0}'.format(guild))
 		ref.update({
@@ -2493,7 +2125,7 @@ async def imageTrack(ctx):
 		channel = bot.get_channel(ctx.channel.id)
 		new_task = tasks.loop(seconds=5.0,count=None,reconnect=True)(imagelooper)
 		new_task.start(channel)
-		await ctx.send(language[114].format(a,j))
+		await ctx.send(language[114])
 	await ctx.message.delete()
 #-------------------------------------------------------------------------------
 #------------------------------- RUN LINE --------------------------------------
