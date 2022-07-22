@@ -20,7 +20,7 @@ from PIL import Image, ImageOps
 from pytesseract import pytesseract
 import numpy as np
 from matplotlib import pyplot as plt, ticker as ticker, dates as mdates
-from discord.ext.commands import CommandNotFound, MissingPermissions, MessageNotFound, NotOwner, BotMissingPermissions, CommandOnCooldown
+from discord.ext.commands import CommandNotFound, MissingPermissions, MessageNotFound, NotOwner, BotMissingPermissions, CommandOnCooldown, ExtensionAlreadyLoaded
 path_to_tesseract = r"Tesseract.exe location here"
 #from threading import Thread
 intents = discord.Intents.default()
@@ -34,16 +34,12 @@ creds = service_account.Credentials.from_service_account_file(
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
 # The ID and range of a sample spreadsheet.
-SPREADSHEET_ID = 'Google sheet ID here'
+SPREADSHEET_ID = 'Google sheets id here'
 RANGE_NAME = 'A2'
 
 bot = commands.Bot(command_prefix="t!", case_insensitive=True, activity=discord.Game(name="t!help for commands"), status=discord.Status.online,help_command=None,intents=intents)
-
-
-# List of removeWins admins
-winAdmins = ((138752093308583936,"ELITE"),(524835935276498946,"ELITE"),(746381696139788348,"ISLAM"),(735145539494215760,"ISLAM"),(514953130178248707,"RL"))
 	
-database_url = "Firebase URL here"
+database_url = "Firebase database url here"
 
 cred = firebase_admin.credentials.Certificate('Firebase credentials json here')
 databaseApp = firebase_admin.initialize_app(cred, { 'databaseURL' : database_url})
@@ -72,10 +68,14 @@ async def on_ready():
 		try:
 			bot.load_extension("Error")
 			print("Error loaded")
-			bot.load_extension("Poll")
-			print("Poll loaded")
 			bot.load_extension("LangCog")
 			print("Lang loaded")
+			bot.load_extension("Clans")
+			print("Clans loaded")
+			bot.load_extension("Wins")
+			print("Wins loaded")
+			bot.load_extension("Poll")
+			print("Poll loaded")
 			LangCog = bot.get_cog("LangCog")
 			clanRanker.start()
 		except Exception as e:
@@ -411,57 +411,6 @@ async def setclan(ctx,name):
 		await ctx.send(embed=profileDisplay(ctx,user,user2,username))
 
 #-------------------------------------------------------------------------------
-#------------------------------ Remove Clan Wins ----------------------------
-#-------------------------------------------------------------------------------	
-@bot.command(pass_context = True)
-async def removeWins(ctx,name: discord.Member,wins):
-	# Get/Set Language
-	user = name.id
-	user2 = ctx.message.author.id
-	language = LangCog.languagePicker(user2)
-	# Assign/Retrieve command caller ID
-	caller = ctx.author.id
-	# Check if caller is approved user
-	for x in range(len(winAdmins)):
-		if caller == winAdmins[x][0]:
-			clan = winAdmins[x][1]
-	if clan == None:
-		await ctx.send(language[121])
-		return
-	# Check if integer discord ID was provided
-	try:
-		int(user)
-	except:
-		await ctx.send(language[122])
-		return
-	# Check if integer was provided for wins
-	try:
-		int(wins)
-	except:
-		await ctx.send(language[122])
-		return
-	# Check if user exists in databse
-	ref = db.reference('users/{0}'.format(user))
-	if ref.get() == None:
-		await ctx.send(language[123])
-		return
-	# Check if user is in callers clan
-	ref = db.reference('users/{0}/clans/{1}/wins'.format(user,clan))
-	count = ref.get()
-	if count == None:
-		await ctx.send(language[124].format(clan))
-		return
-	# Update wins
-	total = count - int(wins)
-	if total < 0:
-		total = 0
-	ref = db.reference('users/{0}/clans/{1}'.format(user,clan))
-	ref.update({
-		'wins': total
-	})
-	await ctx.send(language[125].format(total))
-
-#-------------------------------------------------------------------------------
 #------------------------------ PROFILE COMMAND --------------------------------
 #-------------------------------------------------------------------------------
 
@@ -483,6 +432,7 @@ def profileDisplay(ctx,user,user2,username):
 		clan = infoList[1][1]['currentclan']
 		lang = infoList[2][1]
 	else:
+		# Need to fix this error at some point, clan field of embed becomes currentClan, 'str' has no attribute 'items' error
 		clans = infoList[1][1]
 		clans = list(clans.items())
 		x = len(clans) - 2
@@ -628,119 +578,6 @@ async def profile(ctx, name: discord.Member = None):
 			# Display profile
 			await ctx.send(embed=profileDisplay(ctx,user,user2,username))
 
-
-@bot.command(pass_context = True)
-@commands.cooldown(1, 3600, commands.BucketType.user)
-async def clanboard(ctx,clan):
-	# Get/Set Language
-	user = ctx.message.author.id
-	language = LangCog.languagePicker(user)
-	try:
-		clan.strip("[]")
-		clan = clan.replace('.', 'period5')
-		clan = clan.replace('$', 'dollar5')
-		clan = clan.replace('#', 'htag5')
-		clan = clan.replace('[', 'lbracket5')
-		clan = clan.replace('/', 'slash5')
-		clan = clan.replace(']', 'rbracket5')
-		clan = clan.replace('?', 'qmark5')
-		clan = clan.upper()
-		guild = ctx.message.guild.id
-		try:
-			ref = db.reference('/users')
-			refList = ref.get()
-			users = list(refList.items())
-			#print(users)
-			users2 = list()
-			for i in range(len(users)):
-				try:
-					exists = users[i][1]['clans']['{0}'.format(clan)]['wins']
-					users2.append(users[i])
-				except:
-					pass
-			x = len(users2)
-			users2.sort(key=lambda x: int(x[1]['clans']['{0}'.format(clan)]['wins']))
-			users2.reverse()
-			ladder = discord.Embed(title=language[135].format(clan), description=language[136], color=0x33DDFF)
-			ladder2 = discord.Embed(title=language[135].format(clan), description=language[137], color=0x33DDFF)
-			ladder3 = discord.Embed(title=language[135].format(clan), description=language[138], color=0x33DDFF)
-			ladder4 = discord.Embed(title=language[135].format(clan), description=language[139], color=0x33DDFF)
-			# One Ladder
-			if x <= 25:
-				for i in range(x):
-					name = await bot.fetch_user(users2[i][0])
-					ladder.add_field(name=language[140].format(i+1,name.name), value=language[141].format(users2[i][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
-				msg = await ctx.send(embed=ladder)
-			# Two Ladders
-			elif x <= 50:
-				await ctx.send(language[142])
-				for i in range(25):
-					name = await bot.fetch_user(users2[i][0])
-					ladder.add_field(name=language[140].format(i+1,name.name), value=language[141].format(users2[i][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
-				msg = await ctx.send(embed=ladder)
-				for i in range(x-25):
-					name = await bot.fetch_user(users2[i+25][0])
-					ladder2.add_field(name=language[140].format(i+26,name.name), value=language[141].format(users2[i+25][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
-				msg2 = await ctx.send(embed=ladder2)
-			# Three Ladders
-			elif x <= 75:
-				await ctx.send(language[143])
-				for i in range(25):
-					name = await bot.fetch_user(users2[i][0])
-					ladder.add_field(name=language[140].format(i+1,name.name), value=language[141].format(users2[i][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
-				msg = await ctx.send(embed=ladder)
-				for i in range(25):
-					name = await bot.fetch_user(users2[i+25][0])
-					ladder2.add_field(name=language[140].format(i+26,name.name), value=language[141].format(users2[i+25][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
-				msg2 = await ctx.send(embed=ladder2)
-				for i in range(x-50):
-					name = await bot.fetch_user(users2[i+50][0])
-					ladder3.add_field(name=language[140].format(i+51,name.name), value=language[141].format(users2[i+50][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
-				msg3 = await ctx.send(embed=ladder3)
-			# Four Ladders
-			elif x <= 100:
-				await ctx.send(language[144])
-				for i in range(25):
-					name = await bot.fetch_user(users2[i][0])
-					ladder.add_field(name=language[140].format(i+1,name.name), value=language[141].format(users2[i][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
-				msg = await ctx.send(embed=ladder)
-				for i in range(25):
-					name = await bot.fetch_user(users2[i+25][0])
-					ladder2.add_field(name=language[140].format(i+26,name.name), value=language[141].format(users2[i+25][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
-				msg2 = await ctx.send(embed=ladder2)
-				for i in range(25):
-					name = await bot.fetch_user(users2[i+50][0])
-					ladder3.add_field(name=language[140].format(i+51,name.name), value=language[141].format(users2[i+50][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
-				msg3 = await ctx.send(embed=ladder3)
-				for i in range(x-75):
-					name = await bot.fetch_user(users2[i+75][0])
-					ladder4.add_field(name=language[140].format(i+76,name.name), value=language[141].format(users2[i+75][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
-				msg4 = await ctx.send(embed=ladder4)
-			# Catch if members is > 100. Four ladder maximum
-			else:
-				await ctx.send(language[145])
-				for i in range(25):
-					name = await bot.fetch_user(users2[i][0])
-					ladder.add_field(name=language[140].format(i+1,name.name), value=language[141].format(users2[i][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
-				msg = await ctx.send(embed=ladder)
-				for i in range(25):
-					name = await bot.fetch_user(users2[i+25][0])
-					ladder2.add_field(name=language[140].format(i+26,name.name), value=language[141].format(users2[i+25][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
-				msg2 = await ctx.send(embed=ladder2)
-				for i in range(25):
-					name = await bot.fetch_user(users2[i+50][0])
-					ladder3.add_field(name=language[140].format(i+51,name.name), value=language[141].format(users2[i+50][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
-				msg3 = await ctx.send(embed=ladder3)
-				for i in range(25):
-					name = await bot.fetch_user(users2[i+75][0])
-					ladder4.add_field(name=language[140].format(i+76,name.name), value=language[141].format(users2[i+75][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
-				msg4 = await ctx.send(embed=ladder4)
-		except Exception as e:
-			await ctx.send(language[146].format('<@138752093308583936>'))
-			print("Clanboard command call failed.")
-			print(e)
-	except:
-		await ctx.send(language[147])
 #-------------------------------------------------------------------------------
 #------------------------- 1v1 LEADERBOARD COMMAND -----------------------------
 #-------------------------------------------------------------------------------
@@ -933,240 +770,58 @@ async def clanRanker():
 		# if message != none crashes bot if try/catch failed on message = await
 		print("An erorr occured in clanRanker, previous message null")
 		print(e)
-#-------------------------------------------------------------------------------
-#---------------------- Public Top 50 Clans (Non updating) ---------------------
-#-------------------------------------------------------------------------------	
-@bot.command(pass_context = True)
-@commands.cooldown(1, 600, commands.BucketType.user)
-async def top50(ctx):	
-	# Get/Set Language
-	user = ctx.message.author.id
-	language = LangCog.languagePicker(user)
-	# Get scores
-	ref = db.reference('/{0}/clans'.format(780723109128962070))
-	clanList = ref.order_by_child('score').limit_to_last(50).get()
-	clanList2 = list(clanList.items())
-	clanList2.reverse()
-	# Embed disabled work around
-	#if int(ctx.guild.id) == 780723109128962070:
-	#	nonembed = ""
-	#	for i in range(50):
-	#		if i % 2 == 0:
-	#			nonembed2 = "#{0} {1} {2}   |   ".format(i+1,clanList2[i][0],clanList2[i][1]['score'])
-	#		else:
-	#			nonembed2 = "#{0} {1} {2} \n".format(i+1,clanList2[i][0],clanList2[i][1]['score'])
-	#		nonembed = nonembed + nonembed2
-	#	await ctx.send(nonembed)
-	#else:
-	ladder = discord.Embed(title=language[152], description=language[136], color=0x33DDFF)
-	ladder2 = discord.Embed(title=language[152], description=language[137], color=0x33DDFF)
-	# First Ladder
-	for i in range(25):
-		ladder.add_field(name=language[149].format(i+1) + clanList2[i][0], value=clanList2[i][1]['score'], inline=True)
-	msg = await ctx.send(embed=ladder)
-	# Second Ladder
-	for i in range(25):
-		ladder2.add_field(name=language[149].format(i+26) + clanList2[i+25][0], value=clanList2[i+25][1]['score'], inline=True)
-	msg2 = await ctx.send(embed=ladder2)
-#-------------------------------------------------------------------------------
-#---------------------- Public Top 25 Clans (Non updating) ---------------------
-#-------------------------------------------------------------------------------	
-@bot.command(pass_context = True)
-@commands.cooldown(1, 600, commands.BucketType.user)
-async def top25(ctx):
-	# Get/Set Language
-	user = ctx.message.author.id
-	language = LangCog.languagePicker(user)
-	# Get scores
-	ref = db.reference('/{0}/clans'.format(780723109128962070))
-	clanList = ref.order_by_child('score').limit_to_last(25).get()
-	clanList2 = list(clanList.items())
-	clanList2.reverse()
-	ladder = discord.Embed(title=language[152], description=language[136], color=0x33DDFF)
-	# First Ladder
-	for i in range(25):
-		ladder.add_field(name=language[149].format(i+1) + clanList2[i][0], value=clanList2[i][1]['score'], inline=True)
-	msg = await ctx.send(embed=ladder)
-#-------------------------------------------------------------------------------
-#-------------------------------  Top Override  --------------------------------
-#-------------------------------------------------------------------------------	
-@bot.command(pass_context = True)
-@commands.cooldown(1, 600, commands.BucketType.user)
-async def top(ctx):
-	# Get/Set Language
-	user = ctx.message.author.id
-	language = LangCog.languagePicker(user)
-	await ctx.send(language[154])
 
-#-------------------------------------------------------------------------------
-#---------------------- Public Top 100 Clans (Non updating) ---------------------
-#-------------------------------------------------------------------------------	
-@bot.command(pass_context = True)
-@commands.cooldown(1, 600, commands.BucketType.user)
-async def top100(ctx):
-	# Get/Set Language
-	user = ctx.message.author.id
-	language = LangCog.languagePicker(user)
-	# Get scores
-	ref = db.reference('/{0}/clans'.format(780723109128962070))
-	clanList = ref.order_by_child('score').limit_to_last(100).get()
-	clanList2 = list(clanList.items())
-	clanList2.reverse()
-	ladder = discord.Embed(title=language[152], description=language[136], color=0x33DDFF)
-	ladder2 = discord.Embed(title=language[152], description=language[137], color=0x33DDFF)
-	ladder3 = discord.Embed(title=language[152], description=language[138], color=0x33DDFF)
-	ladder4 = discord.Embed(title=language[152], description=language[139], color=0x33DDFF)
-	# For top 200 clans
-	#ladder5 = discord.Embed(title="Global Clan Rankings", description="**Current Top 101 to 125**", color=0x33DDFF)
-	#ladder6 = discord.Embed(title="Global Clan Rankings", description="**Current Top 126 to 150**", color=0x33DDFF)
-	#ladder7 = discord.Embed(title="Global Clan Rankings", description="**Current Top 151 to 175**", color=0x33DDFF)
-	#ladder8 = discord.Embed(title="Global Clan Rankings", description="**Current Top 176 to 200**", color=0x33DDFF)
-	# First Ladder
-	for i in range(25):
-		ladder.add_field(name=language[149].format(i+1) + clanList2[i][0], value=clanList2[i][1]['score'], inline=True)
-	msg = await ctx.send(embed=ladder)
-	# Second Ladder
-	for i in range(25):
-		ladder2.add_field(name=language[149].format(i+26) + clanList2[i+25][0], value=clanList2[i+25][1]['score'], inline=True)
-	msg2 = await ctx.send(embed=ladder2)
-	for i in range(25):
-		ladder3.add_field(name=language[149].format(i+51) + clanList2[i+50][0], value=clanList2[i+50][1]['score'], inline=True)
-	msg3 = await ctx.send(embed=ladder3)
-	# Second Ladder
-	for i in range(25):
-		ladder4.add_field(name=language[149].format(i+76) + clanList2[i+75][0], value=clanList2[i+75][1]['score'], inline=True)
-	msg4 = await ctx.send(embed=ladder4)
-	# For top 200 clans
-	#for i in range(25):
-	#	ladder5.add_field(name="#{0} ".format(i+101) + clanList2[i+100][0], value=clanList2[i+100][1]['score'], inline=True)
-	#msg5 = await ctx.send(embed=ladder5)
-	#for i in range(25):
-	#	ladder6.add_field(name="#{0} ".format(i+126) + clanList2[i+125][0], value=clanList2[i+125][1]['score'], inline=True)
-	#msg6 = await ctx.send(embed=ladder6)
-	#for i in range(25):
-	#	ladder7.add_field(name="#{0} ".format(i+151) + clanList2[i+150][0], value=clanList2[i+150][1]['score'], inline=True)
-	#msg7 = await ctx.send(embed=ladder7)
-	#for i in range(25):
-	#	ladder8.add_field(name="#{0} ".format(i+176) + clanList2[i+175][0], value=clanList2[i+175][1]['score'], inline=True)
-	#msg8 = await ctx.send(embed=ladder8)
-
-#-------------------------------------------------------------------------------
-#----------------------------- Search For Clan  --------------------------------
-#-------------------------------------------------------------------------------	
-@bot.command(pass_context = True)
-@commands.cooldown(1, 60, commands.BucketType.user)
-async def clan(ctx,clan):
-	# Get/Set Language
-	user = ctx.message.author.id
-	language = LangCog.languagePicker(user)
-	try:
-		clan.strip("[]")
-		clan = clan.replace('.', 'period5')
-		clan = clan.replace('$', 'dollar5')
-		clan = clan.replace('#', 'htag5')
-		clan = clan.replace('[', 'lbracket5')
-		clan = clan.replace('/', 'slash5')
-		clan = clan.replace(']', 'rbracket5')
-		clan = clan.replace('?', 'qmark5')
-		clan = clan.upper()
-		ref2 = db.reference('/{0}/clans/{1}'.format(780723109128962070,clan))
-		clanData = ref2.get()
-		if (clanData == None):
-			await ctx.send(language[156].format(clan))
-		else:
-			# Set times to search back 1 week
-			timeDif = timedelta(7)
-			newTime = ctx.message.created_at
-			oldTime = newTime - timeDif
-			newTime = newTime + timedelta(1)
-			# Get all games from one week ago to present
-			ref = db.reference('gameData')
-			snapshot = ref.order_by_child('Time').start_at(str(oldTime)).end_at(str(newTime)).get()
-			snapshot = list(snapshot.items())
-			games = list()
-			for i in range(len(snapshot)):
-				if(snapshot[i][1]['Clan'] == clan):
-					games.append(snapshot[i])
-			x = len(games)
-			try:
-				# Make plot for score vs time
-				plt.xlabel(language[157])
-				plt.ylabel(language[158])
-				plt.title(language[159])
-				times = list()
-				scores = list()
-				for i in range(len(games)):
-					temp = games[i][1]['Time'].replace('T',' ')
-					try:
-						times.append(datetime.strptime(temp,"%Y-%m-%d %H:%M:%S.%f"))
-					except:
-						times.append(datetime.strptime(temp,"%Y-%m-%d %H:%M:%S"))
-					scores.append(games[i][1]['Score'])
-				plt.plot(times,scores)
-				ax = plt.gca()
-				myFmt = mdates.DateFormatter('%m/%d')
-				ax.xaxis.set_major_formatter(myFmt)
-				ax.xaxis.set_major_locator(ticker.LinearLocator(9))
-				ax.xaxis.set_minor_locator(ticker.LinearLocator(10))
-				# Save plot for discord embed
-				data_stream = io.BytesIO()
-				plt.savefig(data_stream, format='png', bbox_inches="tight", dpi = 80)
-				data_stream.seek(0)
-				chart = discord.File(data_stream,filename="plot.png")
-				# Make and send embed
-				try:
-					plot = discord.Embed(title="{0}".format(clan), description=language[160], color=0x03fcc6)
-					plot.set_image(
-					   url="attachment://plot.png"
-					)
-					await ctx.send(embed=plot, file=chart)
-				except Exception as e:
-					print("t!clan error")
-					print(e)
-					print(clan)
-				plt.clf()
-			except:
-				await ctx.send(language[161])
-			#print(games[x - 1])
-			try:
-				y = clanData['wins']
-			except:
-				snapshot2 = ref.order_by_child('Clan').equal_to(clan).get()
-				snapshot2 = list(snapshot2.items())
-				y = len(snapshot2)
-				ref2.update({
-				'wins': y
-				})
-			
-			
-			clan = clan.replace('PERIOD5', '.')
-			clan = clan.replace('DOLLAR5', '$')
-			clan = clan.replace('HTAG5', '#')
-			clan = clan.replace('LBRACKET5', '[')
-			clan = clan.replace('SLASH5', '/')
-			clan = clan.replace('RBRACKET5', ']')
-			clan = clan.replace('QMARK5', '?')
-			
-			score = clanData['score']
-			await ctx.send(language[162].format(clan,score,x,y))
-	except Exception as e:
-		print(e)
-		# Catch missing message permission
-		try:
-			await ctx.send(language[153])
-		except:
-			try:
-				print("{0} id {1} name ".format(ctx.message.guild.id,ctx.message.guild.name))
-			except Exception as e:
-				print(e)
 #-------------------------------------------------------------------------------
 #------------------------------ Change bot status ------------------------------
 #-------------------------------------------------------------------------------	
 @commands.is_owner()
 @bot.command(pass_context = True)
-async def status(ctx,*,text):
+async def botstatus(ctx,*,text):
 	await bot.change_presence(activity=discord.Game(name=text))
 	await ctx.message.delete()
+#-------------------------------------------------------------------------------
+#------------------------------ Check Cog Status -------------------------------
+#-------------------------------------------------------------------------------	
+@bot.command(pass_context = True)
+@commands.cooldown(1, 300, commands.BucketType.user)
+async def status(ctx):
+	stat = discord.Embed(title="Bot Status",description="What should be working.", color=0x0000FF)
+	try:
+		bot.load_extension("Error")
+	except Exception as e:
+		if isinstance(e,discord.ext.commands.ExtensionAlreadyLoaded):
+			stat.add_field(name="Error Handling", value="Online", inline=False)
+		else:
+			stat.add_field(name="Error Handling", value="Offline", inline=False)
+	try:
+		bot.load_extension("LangCog")
+	except Exception as e:
+		if isinstance(e,discord.ext.commands.ExtensionAlreadyLoaded):
+			stat.add_field(name="Language Translation (Effects most commands)", value="Online", inline=False)
+		else:
+			stat.add_field(name="Language Translation (Effects most commands)", value="Offline", inline=False)
+	try:
+		bot.load_extension("Clans")
+	except Exception as e:
+		if isinstance(e,discord.ext.commands.ExtensionAlreadyLoaded):
+			stat.add_field(name="Clans commands", value="Online", inline=False)
+		else:
+			stat.add_field(name="Clans commands", value="Offline", inline=False)
+	try:
+		bot.load_extension("Wins")
+	except Exception as e:
+		if isinstance(e,discord.ext.commands.ExtensionAlreadyLoaded):
+			stat.add_field(name="Win Tracking", value="Online", inline=False)
+		else:
+			stat.add_field(name="Win Tracking", value="Offline", inline=False)
+	try:
+		bot.load_extension("Poll")
+	except Exception as e:
+		if isinstance(e,discord.ext.commands.ExtensionAlreadyLoaded):
+			stat.add_field(name="Poll System", value="Online", inline=False)
+		else:
+			stat.add_field(name="Poll System", value="Offline", inline=False)
+	await ctx.send(embed = stat)
 
 #-------------------------------------------------------------------------------
 #------------------------------ PING CRASH TEST --------------------------------
@@ -1326,156 +981,7 @@ async def lc(ctx):
 	language = LangCog.languagePicker(user)
 	# Post to channel
 	await ctx.send(language[168],file=discord.File("StatisticsLCEvent.pdf"))
-#-------------------------------------------------------------------------------
-#------------------------------ Compare Clans Command --------------------------
-#-------------------------------------------------------------------------------
-@bot.command(pass_context = True)
-@commands.cooldown(1, 600, commands.BucketType.user)
-async def compare(ctx,*,clans):
-	# Get/Set Language
-	user = ctx.message.author.id
-	language = LangCog.languagePicker(user)
-	plt.clf()
-	await ctx.send(language[3])
-	clanList = clans.split()
-	if len(clanList) < 2:
-		await ctx.send("Minimum clans is 2, please try again.")
-		await compare.reset_cooldown(ctx)
-		return
-	if len(clanList) > 5:
-		await ctx.send("Maximum clans is 5, please try again.")
-		await compare.reset_cooldown(ctx)
-		return
-	# Set times to search back 1 week
-	timeDif = timedelta(9)
-	newTime = ctx.message.created_at
-	oldTime = newTime - timeDif
-	newTime = newTime + timedelta(1)
-	# Make plot for score vs time
-	plt.xlabel(language[157])
-	plt.ylabel(language[158])
-	plt.title(language[169])
-	ax = plt.gca()
-	myFmt = mdates.DateFormatter('%m/%d')
-	ax.xaxis.set_major_formatter(myFmt)
-	ax.xaxis.set_major_locator(ticker.LinearLocator(9))
-	ax.xaxis.set_minor_locator(ticker.LinearLocator(10))
-	# Loop through each clan name given
-	b = 1
-	pF = 0
-	pS = 0
-	mF = ''
-	mS = ''
-	gF = 0
-	gS = 0
-	ref = db.reference('gameData')
-	snapshot = ref.order_by_child('Time').start_at(str(oldTime)).end_at(str(newTime)).get()
-	snapshot = list(snapshot.items())
-	for clan in clanList:
-		try:
-			clan.strip("[]")
-			clan = clan.replace('.', 'period5')
-			clan = clan.replace('$', 'dollar5')
-			clan = clan.replace('#', 'htag5')
-			clan = clan.replace('[', 'lbracket5')
-			clan = clan.replace('/', 'slash5')
-			clan = clan.replace(']', 'rbracket5')
-			clan = clan.replace('?', 'qmark5')
-			clan = clan.upper()
-			ref = db.reference('/{0}/clans/{1}'.format(780723109128962070,clan))
-			clanData = ref.get()
-			if (clanData == None):
-				await ctx.send(language[156].format(clan))
-				await compare.reset_cooldown(ctx)
-				return
-			else:
-				games = list()
-				# Get all games from one week ago to present
-				for i in range(len(snapshot)):
-					if(snapshot[i][1]['Clan'] == clan):
-						games.append(snapshot[i])
-				count = len(games)
-				times = list()
-				scores = list()
-				maps = list()
-				players = list()
-				# Plot lines
-				for i in range(count):
-					temp2 = defaultdict(int)
-					temp = games[i][1]['Time'].replace('T',' ')
-					try:
-						times.append(datetime.strptime(temp,"%Y-%m-%d %H:%M:%S.%f"))
-					except:
-						times.append(datetime.strptime(temp,"%Y-%m-%d %H:%M:%S"))
-					scores.append(games[i][1]['Score'])
-					try:
-						maps.append(games[i][1]['Map'])
-					except:
-						print(games[i][1]['Map'])
-					try:
-						players.append(int(games[i][1]['Players']))
-					except:
-						print(games[i][1]['Players'])
-				if(b == 1):
-					if(players == []):
-						pF = 0
-					else:
-						pF = int(statistics.mean(players))
-					if(maps == []):
-						mF = "N/A"
-					else:
-						for map in maps:
-							for name in map.split():
-								temp2[name] += 1
-						mF = max(temp2, key=temp2.get)
-					gF = count
-				elif(b == 2):
-					if(players == []):
-						pS = 0
-					else:
-						pS = int(statistics.mean(players))
-					if(maps == []):
-						mS = "N/A"
-					else:
-						for map in maps:
-							for name in map.split():
-								temp2[name] += 1
-						mS = max(temp2, key=temp2.get)
-					gS = count
-				b += 1
-				plt.plot(times,scores,label=clan)
-		except Exception as e:
-			print(e)
-			await ctx.send(language[153])
-			await compare.reset_cooldown(ctx)
-			return
-	try:
-		plt.legend(loc="upper right")
-		# Save plot for discord embed
-		data_stream = io.BytesIO()
-		plt.savefig(data_stream, format='png', bbox_inches="tight", dpi = 80)
-		data_stream.seek(0)
-		chart = discord.File(data_stream,filename="plot.png")
-		# Make and send embed
-		plot = discord.Embed(title="{0}".format(clans), description=language[163], color=0x03fcc6)
-		plot.set_image(
-		   url="attachment://plot.png"
-		)
-		await ctx.send(embed=plot, file=chart)
-		try:
-			await ctx.send(language[4].format(clanList[0],pF,mF,gF))
-			await ctx.send(language[4].format(clanList[1],pS,mS,gS))
-		except Exception as e:
-			print("t!compare")
-			print(e)
-			print(ctx.message.guild.name)
-			print(ctx.message.guild.id)
-		plt.clf()
-	except Exception as e:
-			print(e)
-			print("Test")
-			await ctx.send(language[153])
-		
+
 #-------------------------------------------------------------------------------
 #------------------------------ SCOPE COMMAND ---------------------------
 #-------------------------------------------------------------------------------		
@@ -1670,63 +1176,6 @@ async def setlanguage(ctx, lang):
 	except Exception as e:
 		print(e)
 #-------------------------------------------------------------------------------
-#------------------------------ Remove Wins Self Version -----------------------
-#-------------------------------------------------------------------------------	
-@bot.command(pass_context = True)
-async def remove(ctx,wins,points = None):
-	try:
-		# Get/Set Language
-		user = ctx.message.author.id
-		language = LangCog.languagePicker(user)
-		# Check if integer was provided for wins
-		try:
-			wins = int(wins)
-			if (int(wins) < 0):
-				return
-		except:
-			await ctx.send(language[122])
-			return
-		# Check if user exists in databse
-		ref = db.reference('users/{0}'.format(user))
-		if ref.get() == None:
-			await ctx.send(language[123])
-			return
-		try:
-			points = int(points)
-			if (int(points) < 0):
-				return
-		except:
-			points = 0
-		ref = db.reference('users/{0}/clans/currentclan'.format(user))
-		clan = ref.get()
-		ref = db.reference('users/{0}/clans/{1}/wins'.format(user,clan))
-		count = ref.get()
-		if count == None:
-			await ctx.send(language[124].format(clan))
-			return
-		# Check if points exist
-		ref = db.reference('users/{0}/clans/{1}/points'.format(user,clan))
-		count2 = ref.get()
-		if count2 == None:
-			await ctx.send(language[124].format(clan))
-			count2 = 0
-		# Update wins and points
-		total = count - int(wins)
-		if (count2 != 0):
-			total2 = count2 - points
-		if total < 0:
-			total = 0
-		if total2 < 0:
-			total2 = 0
-		ref = db.reference('users/{0}/clans/{1}'.format(user,clan))
-		ref.update({
-			'wins': total,
-			'points': total2
-		})
-		await ctx.send(language[177].format(user,total,total2))
-	except Exception as e:
-		print(e)
-#-------------------------------------------------------------------------------
 #----------------------------- Load/Unload Lang Cog ----------------------------
 #-------------------------------------------------------------------------------
 @bot.command(pass_context = True)
@@ -1748,7 +1197,18 @@ async def langSwitch(ctx):
 async def pollSwitch(ctx):
 	try:
 		bot.load_extension("Poll")
+		poll = bot.get_cog("Poll")
 		await ctx.send("Poll is online")
+		
+		#Do before calling poll update, pass 
+		ref = db.reference('/openPolls')
+		info = ref.get()
+		polls = list(info.items())
+		for i in range(len(polls)):
+			channel = bot.get_channel(int(polls[i]))
+			#message = await channel2.fetch_message(int(clans[i][1]['message']))	
+			#elite_task = tasks.loop(seconds=5.0,count=None,reconnect=True)(imagelooper)
+			#elite_task.start(channel)
 	except commands.ExtensionAlreadyLoaded:
 		bot.unload_extension("Poll")
 		await ctx.send("Poll is offline")
@@ -2130,4 +1590,4 @@ async def imageTrack(ctx):
 #-------------------------------------------------------------------------------
 #------------------------------- RUN LINE --------------------------------------
 #-------------------------------------------------------------------------------
-bot.run('Token goes here', bot=True, reconnect=True)
+bot.run('Bot Token Here', bot=True, reconnect=True)
