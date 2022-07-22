@@ -22,6 +22,10 @@ textfile.close()
 textfile = open('tr-errors.txt', 'r', encoding="utf8")
 turkish = textfile.read().splitlines()
 textfile.close()
+#German
+textfile = open('de-errors.txt', 'r', encoding="utf8")
+german = textfile.read().splitlines()
+textfile.close()
 
 
 class Error(commands.Cog):
@@ -43,8 +47,10 @@ class Error(commands.Cog):
 			language = english
 		if ref.get() == "russian":
 			language = russian
-		if ref2.get() == "turkish":
+		if ref.get() == "turkish":
 			language = turkish
+		if ref.get() == "german":
+			language = german
 		if ref.get() == None:
 			language = english
 		# Catch CommandNotFound Error
@@ -77,7 +83,7 @@ class Error(commands.Cog):
 			error = error.split()
 			time = error[len(error) - 1]
 			try:
-				await ctx.send(language[3].format(time))
+				return await ctx.send(language[3].format(time))
 			except Exception as e:
 				print(e)
 				try:
@@ -159,5 +165,7 @@ class Error(commands.Cog):
 				except:
 						print("{0} id {1} name ".format(ctx.message.guild.id,ctx.message.guild.name))
 						return
+		else:
+			print(error)
 def setup(bot):
 	bot.add_cog(Error(bot))
