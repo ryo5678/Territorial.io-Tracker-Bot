@@ -1,5 +1,5 @@
 # Territorial.io-Tracker-Bot
-Discord.py Bot for tracking Territorial.io stats
+Discord.py Bot for tracking Territorial.io stats and other miscellaneous features.
 
 Latest version of the bot for public review.
 
