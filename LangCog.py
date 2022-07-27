@@ -49,5 +49,5 @@ class LangCog(commands.Cog):
 			language = english
 		return language
 	
-def setup(bot):
-	bot.add_cog(LangCog(bot))
+async def setup(bot):
+	await bot.add_cog(LangCog(bot))

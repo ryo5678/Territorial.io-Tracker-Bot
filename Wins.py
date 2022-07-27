@@ -364,6 +364,6 @@ class Wins(commands.Cog):
 			print(e)
 			print("Win command fail")
 # Setup command
-def setup(bot):
-	bot.add_cog(Wins(bot))
+async def setup(bot):
+	await bot.add_cog(Wins(bot))
 

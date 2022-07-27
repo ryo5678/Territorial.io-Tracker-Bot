@@ -26,11 +26,12 @@ class Clans(commands.Cog):
 		clanList = clans.split()
 		if len(clanList) < 2:
 			await ctx.send("Minimum clans is 2, please try again.")
-			await compare.reset_cooldown(ctx)
+			# May need to change to self.reset, unsure for cogs
+			ctx.command.reset_cooldown(ctx)
 			return
 		if len(clanList) > 5:
 			await ctx.send("Maximum clans is 5, please try again.")
-			await compare.reset_cooldown(ctx)
+			ctx.command.reset_cooldown(ctx)
 			return
 		# Set times to search back 1 week
 		timeDif = timedelta(9)
@@ -72,7 +73,7 @@ class Clans(commands.Cog):
 				clanData = ref.get()
 				if (clanData == None):
 					await ctx.send(language[156].format(clan))
-					await compare.reset_cooldown(ctx)
+					ctx.command.reset_cooldown(ctx)
 					return
 				else:
 					games = list()
@@ -90,9 +91,10 @@ class Clans(commands.Cog):
 						temp2 = defaultdict(int)
 						temp = games[i][1]['Time'].replace('T',' ')
 						try:
-							times.append(datetime.strptime(temp,"%Y-%m-%d %H:%M:%S.%f"))
+							times.append(datetime.fromisoformat(temp))
 						except:
-							times.append(datetime.strptime(temp,"%Y-%m-%d %H:%M:%S"))
+							times.append(datetime.strptime(temp,"%Y-%m-%d %H:%M:%S.%f"))
+							#times.append(datetime.strptime(temp,"%Y-%m-%d %H:%M:%S"))
 						scores.append(games[i][1]['Score'])
 						try:
 							maps.append(games[i][1]['Map'])
@@ -133,7 +135,7 @@ class Clans(commands.Cog):
 			except Exception as e:
 				print(e)
 				await ctx.send(language[153])
-				await compare.reset_cooldown(ctx)
+				ctx.command.reset_cooldown(ctx)
 				return
 		try:
 			plt.legend(loc="upper right")
@@ -159,7 +161,6 @@ class Clans(commands.Cog):
 			plt.clf()
 		except Exception as e:
 				print(e)
-				print("Test")
 				await ctx.send(language[153])
 	#-------------------------------------------------------------------------------
 	#----------------------------- Search For Clan  --------------------------------
@@ -210,9 +211,10 @@ class Clans(commands.Cog):
 					for i in range(len(games)):
 						temp = games[i][1]['Time'].replace('T',' ')
 						try:
-							times.append(datetime.strptime(temp,"%Y-%m-%d %H:%M:%S.%f"))
+							times.append(datetime.fromisoformat(temp))
 						except:
-							times.append(datetime.strptime(temp,"%Y-%m-%d %H:%M:%S"))
+							times.append(datetime.strptime(temp,"%Y-%m-%d %H:%M:%S.%f"))
+							#times.append(datetime.strptime(temp,"%Y-%m-%d %H:%M:%S"))
 						scores.append(games[i][1]['Score'])
 					plt.plot(times,scores)
 					ax = plt.gca()
@@ -507,5 +509,5 @@ class Clans(commands.Cog):
 				print(e)
 		except:
 			await ctx.send(language[147])
-def setup(bot):
-	bot.add_cog(Clans(bot))
+async def setup(bot):
+	await bot.add_cog(Clans(bot))

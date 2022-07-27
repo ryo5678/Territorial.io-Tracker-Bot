@@ -21,14 +21,15 @@ from pytesseract import pytesseract
 import numpy as np
 from matplotlib import pyplot as plt, ticker as ticker, dates as mdates
 from discord.ext.commands import CommandNotFound, MissingPermissions, MessageNotFound, NotOwner, BotMissingPermissions, CommandOnCooldown, ExtensionAlreadyLoaded
-path_to_tesseract = r"Tesseract.exe location here"
+path_to_tesseract = r"Tesseract.exe path goes here"
 #from threading import Thread
 intents = discord.Intents.default()
 intents.messages = True
+intents.message_content = True
 intents.members = True
 
 creds = service_account.Credentials.from_service_account_file(
-    'Google credentials json here')
+    'Google credentials json file here')
 
 
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
@@ -39,7 +40,7 @@ RANGE_NAME = 'A2'
 
 bot = commands.Bot(command_prefix="t!", case_insensitive=True, activity=discord.Game(name="t!help for commands"), status=discord.Status.online,help_command=None,intents=intents)
 	
-database_url = "Firebase database url here"
+database_url = "Firebase realtime url link here"
 
 cred = firebase_admin.credentials.Certificate('Firebase credentials json here')
 databaseApp = firebase_admin.initialize_app(cred, { 'databaseURL' : database_url})
@@ -67,17 +68,17 @@ async def on_ready():
 	if counter == 1:
 		try:
 			clanRanker.start()
-			bot.load_extension("Error")
+			await bot.load_extension("Error")
 			print("Error loaded")
-			bot.load_extension("LangCog")
+			await bot.load_extension("LangCog")
 			LangCog = bot.get_cog("LangCog")
 			print("Lang loaded")
-			bot.load_extension("Clans")
+			await bot.load_extension("Clans")
 			print("Clans loaded")
-			bot.load_extension("Wins")
+			await bot.load_extension("Wins")
 			print("Wins loaded")
-			bot.load_extension("Poll")
-			print("Poll loaded")
+			#await bot.load_extension("Poll")
+			#print("Poll loaded")
 		except Exception as e:
 			print(".start() error")
 			print(e)
@@ -123,6 +124,7 @@ async def on_ready():
 						print(e)
 						if str(e) == "object Nonetype can't be used in 'await' expression":
 							print("found")
+		
 	counter = 2
 # Plans for future updates
 # Make a search method to display other clans leaderboards.
@@ -787,35 +789,35 @@ async def botstatus(ctx,*,text):
 async def status(ctx):
 	stat = discord.Embed(title="Bot Status",description="What should be working.", color=0x0000FF)
 	try:
-		bot.load_extension("Error")
+		await bot.load_extension("Error")
 	except Exception as e:
 		if isinstance(e,discord.ext.commands.ExtensionAlreadyLoaded):
 			stat.add_field(name="Error Handling", value="Online", inline=False)
 		else:
 			stat.add_field(name="Error Handling", value="Offline", inline=False)
 	try:
-		bot.load_extension("LangCog")
+		await bot.load_extension("LangCog")
 	except Exception as e:
 		if isinstance(e,discord.ext.commands.ExtensionAlreadyLoaded):
 			stat.add_field(name="Language Translation (Effects most commands)", value="Online", inline=False)
 		else:
 			stat.add_field(name="Language Translation (Effects most commands)", value="Offline", inline=False)
 	try:
-		bot.load_extension("Clans")
+		await bot.load_extension("Clans")
 	except Exception as e:
 		if isinstance(e,discord.ext.commands.ExtensionAlreadyLoaded):
 			stat.add_field(name="Clans commands", value="Online", inline=False)
 		else:
 			stat.add_field(name="Clans commands", value="Offline", inline=False)
 	try:
-		bot.load_extension("Wins")
+		await bot.load_extension("Wins")
 	except Exception as e:
 		if isinstance(e,discord.ext.commands.ExtensionAlreadyLoaded):
 			stat.add_field(name="Win Tracking", value="Online", inline=False)
 		else:
 			stat.add_field(name="Win Tracking", value="Offline", inline=False)
 	try:
-		bot.load_extension("Poll")
+		await bot.load_extension("Poll")
 	except Exception as e:
 		if isinstance(e,discord.ext.commands.ExtensionAlreadyLoaded):
 			stat.add_field(name="Poll System", value="Online", inline=False)
@@ -1183,11 +1185,11 @@ async def setlanguage(ctx, lang):
 async def langSwitch(ctx):
 	try:
 		global LangCog
-		bot.load_extension("LangCog")
+		await bot.load_extension("LangCog")
 		LangCog = bot.get_cog("LangCog")
 		await ctx.send("Language is online")
 	except commands.ExtensionAlreadyLoaded:
-		bot.unload_extension("LangCog")
+		await bot.unload_extension("LangCog")
 		await ctx.send("Language is offline")
 #-------------------------------------------------------------------------------
 #----------------------------- Load/Unload Clans Cog ---------------------------
@@ -1196,10 +1198,10 @@ async def langSwitch(ctx):
 @commands.is_owner()
 async def clanSwitch(ctx):
 	try:
-		bot.load_extension("Clans")
+		await bot.load_extension("Clans")
 		await ctx.send("Clans is online")
 	except commands.ExtensionAlreadyLoaded:
-		bot.unload_extension("Clans")
+		await bot.unload_extension("Clans")
 		await ctx.send("Clans is offline")
 #-------------------------------------------------------------------------------
 #----------------------------- Load/Unload Wins Cog ----------------------------
@@ -1208,10 +1210,10 @@ async def clanSwitch(ctx):
 @commands.is_owner()
 async def winSwitch(ctx):
 	try:
-		bot.load_extension("Wins")
+		await bot.load_extension("Wins")
 		await ctx.send("Wins is online")
 	except commands.ExtensionAlreadyLoaded:
-		bot.unload_extension("Wins")
+		await bot.unload_extension("Wins")
 		await ctx.send("Wins is offline")
 #-------------------------------------------------------------------------------
 #----------------------------- Load/Unload Poll Cog ----------------------------
@@ -1220,21 +1222,21 @@ async def winSwitch(ctx):
 @commands.is_owner()
 async def pollSwitch(ctx):
 	try:
-		bot.load_extension("Poll")
+		await bot.load_extension("Poll")
 		poll = bot.get_cog("Poll")
 		await ctx.send("Poll is online")
 		
 		#Do before calling poll update, pass 
-		ref = db.reference('/openPolls')
-		info = ref.get()
-		polls = list(info.items())
-		for i in range(len(polls)):
-			channel = bot.get_channel(int(polls[i]))
+		#ref = db.reference('/openPolls')
+		#info = ref.get()
+		#polls = list(info.items())
+		#for i in range(len(polls)):
+			#channel = bot.get_channel(int(polls[i]))
 			#message = await channel2.fetch_message(int(clans[i][1]['message']))	
 			#elite_task = tasks.loop(seconds=5.0,count=None,reconnect=True)(imagelooper)
 			#elite_task.start(channel)
 	except commands.ExtensionAlreadyLoaded:
-		bot.unload_extension("Poll")
+		await bot.unload_extension("Poll")
 		await ctx.send("Poll is offline")
 #-------------------------------------------------------------------------------
 #------------------------------ START Image Tracking ---------------------------
@@ -1514,7 +1516,7 @@ async def imagelooper(channel):
 				except:
 					mRef = db.reference('/imageChannels/{0}'.format(channel.guild.id))
 					mRef.update({
-					'lastMessage': str(message2.id)
+					'lastMessage': str(message2)
 					})
 			elif isinstance(e, discord.ext.commands.BotMissingPermissions):
 				ref = db.reference('/imageChannels/{0}'.format(channel.id))
@@ -1535,7 +1537,7 @@ async def imagelooper(channel):
 				except:
 					mRef = db.reference('/imageChannels/{0}'.format(channel.guild.id))
 					mRef.update({
-					'lastMessage': str(message2.id)
+					'lastMessage': str(message2)
 					})
 				#await channel.send("Uh oh, something went wrong! Please harrass your local Ryo5678 to fix it.")
 				#print("imageTrack loops = {0}".format(i))
@@ -1567,4 +1569,4 @@ async def imageTrack(ctx):
 #-------------------------------------------------------------------------------
 #------------------------------- RUN LINE --------------------------------------
 #-------------------------------------------------------------------------------
-bot.run('Bot Token Here', bot=True, reconnect=True)
+bot.run('Bot token goes here', reconnect=True)
