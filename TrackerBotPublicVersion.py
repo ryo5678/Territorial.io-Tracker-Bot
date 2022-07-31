@@ -21,7 +21,7 @@ from pytesseract import pytesseract
 import numpy as np
 from matplotlib import pyplot as plt, ticker as ticker, dates as mdates
 from discord.ext.commands import CommandNotFound, MissingPermissions, MessageNotFound, NotOwner, BotMissingPermissions, CommandOnCooldown, ExtensionAlreadyLoaded
-path_to_tesseract = r"Tesseract.exe path goes here"
+path_to_tesseract = r"Tesseract.exe location here"
 #from threading import Thread
 intents = discord.Intents.default()
 intents.messages = True
@@ -29,23 +29,22 @@ intents.message_content = True
 intents.members = True
 
 creds = service_account.Credentials.from_service_account_file(
-    'Google credentials json file here')
+    'Google credentials json here')
 
 
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
 # The ID and range of a sample spreadsheet.
-SPREADSHEET_ID = 'Google sheets id here'
+SPREADSHEET_ID = 'Goolge Sheet ID'
 RANGE_NAME = 'A2'
 
 bot = commands.Bot(command_prefix="t!", case_insensitive=True, activity=discord.Game(name="t!help for commands"), status=discord.Status.online,help_command=None,intents=intents)
 	
-database_url = "Firebase realtime url link here"
+database_url = "Firebase Database URL Here"
 
-cred = firebase_admin.credentials.Certificate('Firebase credentials json here')
+cred = firebase_admin.credentials.Certificate('Firebase Admin Credentials json Here')
 databaseApp = firebase_admin.initialize_app(cred, { 'databaseURL' : database_url})
 
-#global message3
 counter = 1
 
 #English
@@ -77,8 +76,10 @@ async def on_ready():
 			print("Clans loaded")
 			await bot.load_extension("Wins")
 			print("Wins loaded")
-			#await bot.load_extension("Poll")
-			#print("Poll loaded")
+			await bot.load_extension("Poll")
+			PollCog = bot.get_cog("Poll")
+			PollCog.pollStart()
+			print("Poll loaded")
 		except Exception as e:
 			print(".start() error")
 			print(e)
@@ -210,14 +211,14 @@ async def ahelp(ctx):
 	sheet.add_field(name=language[10], value=language[11] + '\n' + language[12], inline=False)
 	sheet.add_field(name=language[13], value=language[14] + '\n' + language[15], inline=False)
 	sheet.add_field(name=language[16], value=language[17] + '\n' + language[18], inline=False)
-	sheet.add_field(name=language[19], value=s + language[20] + '\n' + language[21], inline=False)
-	sheet.add_field(name=language[22], value=s + language[23] + '\n' + language[24], inline=False)
+	sheet.add_field(name=language[19], value=language[20] + '\n' + language[21], inline=False)
+	sheet.add_field(name=language[22], value=language[23] + '\n' + language[24], inline=False)
 	sheet.add_field(name=language[25], value=language[26] + '\n' + language[27], inline=False)
 	sheet.add_field(name=language[28], value=language[29] + '\n' + language[30] + '\n' + language[31], inline=False)
 	sheet.add_field(name=language[32], value=language[33] + '\n' + language[34], inline=False)
 	sheet.add_field(name=language[35], value=language[36] + '\n' + language[37], inline=False)
-	sheet.add_field(name=language[38], value=s + language[39] + '\n' + language[40] + '\n' + language[41], inline=False)
-	sheet.add_field(name=language[42], value=s + language[43] + '\n' + language[44] + '\n' + language[45], inline=False)
+	sheet.add_field(name=language[38], value=language[39] + '\n' + language[40] + '\n' + language[41], inline=False)
+	sheet.add_field(name=language[42], value=language[43] + '\n' + language[44] + '\n' + language[45], inline=False)
 	await ctx.send(embed=sheet)
 #-------------------------------------------------------------------------------
 #------------------------------ HELP Override -----------------------------
@@ -757,7 +758,15 @@ async def clanRanker():
 					'score': float(points)
 					})
 			ref2 = db.reference('/gameData')
+			ref3 = db.reference('/gameData2')
 			ref2.push({
+			'Map': map,
+			'Players': players,
+			'Clan': clan,
+			'Score': float(points),
+			'Time': time
+			})
+			ref3.push({
 			'Map': map,
 			'Players': players,
 			'Clan': clan,
@@ -1223,7 +1232,8 @@ async def winSwitch(ctx):
 async def pollSwitch(ctx):
 	try:
 		await bot.load_extension("Poll")
-		poll = bot.get_cog("Poll")
+		PollCog = bot.get_cog("Poll")
+		PollCog.pollStart()
 		await ctx.send("Poll is online")
 		
 		#Do before calling poll update, pass 
@@ -1549,7 +1559,7 @@ async def imagelooper(channel):
 async def imageTrack(ctx):
 	# Get/Set Language
 	user = ctx.message.author.id
-	language = LangCog.LangCog.languagePicker(user)
+	language = LangCog.languagePicker(user)
 	# Get guild id
 	guild = ctx.message.guild.id
 	ref = db.reference('/imageChannels/{0}'.format(guild))
@@ -1569,4 +1579,4 @@ async def imageTrack(ctx):
 #-------------------------------------------------------------------------------
 #------------------------------- RUN LINE --------------------------------------
 #-------------------------------------------------------------------------------
-bot.run('Bot token goes here', reconnect=True)
+bot.run('Bot Token Goes Here', reconnect=True)
