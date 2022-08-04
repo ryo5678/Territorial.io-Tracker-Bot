@@ -21,7 +21,7 @@ from pytesseract import pytesseract
 import numpy as np
 from matplotlib import pyplot as plt, ticker as ticker, dates as mdates
 from discord.ext.commands import CommandNotFound, MissingPermissions, MessageNotFound, NotOwner, BotMissingPermissions, CommandOnCooldown, ExtensionAlreadyLoaded
-path_to_tesseract = r"Tesseract.exe location here"
+path_to_tesseract = r"Tesseract exe location here"
 #from threading import Thread
 intents = discord.Intents.default()
 intents.messages = True
@@ -35,14 +35,14 @@ creds = service_account.Credentials.from_service_account_file(
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
 # The ID and range of a sample spreadsheet.
-SPREADSHEET_ID = 'Goolge Sheet ID'
+SPREADSHEET_ID = 'Google sheets id here'
 RANGE_NAME = 'A2'
 
 bot = commands.Bot(command_prefix="t!", case_insensitive=True, activity=discord.Game(name="t!help for commands"), status=discord.Status.online,help_command=None,intents=intents)
 	
-database_url = "Firebase Database URL Here"
+database_url = "Firebase database url here"
 
-cred = firebase_admin.credentials.Certificate('Firebase Admin Credentials json Here')
+cred = firebase_admin.credentials.Certificate('Firebase admin credentials json here')
 databaseApp = firebase_admin.initialize_app(cred, { 'databaseURL' : database_url})
 
 counter = 1
@@ -67,19 +67,33 @@ async def on_ready():
 	if counter == 1:
 		try:
 			clanRanker.start()
+			# Error Cog
 			await bot.load_extension("Error")
 			print("Error loaded")
+			# Language Cog
 			await bot.load_extension("LangCog")
 			LangCog = bot.get_cog("LangCog")
 			print("Lang loaded")
+			# Clan Cog
 			await bot.load_extension("Clans")
 			print("Clans loaded")
+			# Profile Cog
+			await bot.load_extension("Profile")
+			print("Profile is online")
+			# Win Cog
 			await bot.load_extension("Wins")
 			print("Wins loaded")
+			# Help Cog
+			await bot.load_extension("Help")
+			print("Help is online")
+			# Poll Cog
 			await bot.load_extension("Poll")
 			PollCog = bot.get_cog("Poll")
-			PollCog.pollStart()
+			await PollCog.pollStart()
 			print("Poll loaded")
+			# Switch Cog
+			await bot.load_extension("Switch")
+			print("Switch is online")
 		except Exception as e:
 			print(".start() error")
 			print(e)
@@ -147,6 +161,33 @@ async def lag(ctx):
 	print("lag")
 
 #-------------------------------------------------------------------------------
+#--------------------------- Submit Suggestions Command ------------------------
+#-------------------------------------------------------------------------------
+		
+@bot.command(pass_context = True)
+@commands.cooldown(1, 86400, commands.BucketType.user)
+async def suggest(ctx):
+	# Check correct channel
+	def check(c):
+		return c.channel == ctx.author.dm_channel and c.author == ctx.author
+	# Send user the request
+	await ctx.author.send("Please enter your suggestion to improve the bot.")
+	try:
+		# Wait for suggestion
+		suggestion = await bot.wait_for('message', check=check, timeout = 180)
+		suggestion = suggestion.content
+		# Submit suggestion
+		if(suggestion != None):
+			with open('suggestions.txt', 'a') as textfile:
+				textfile.write(f"\n{suggestion} {ctx.author.id} {ctx.author.name}")
+	# Catch timeout
+	except asyncio.TimeoutError:
+		await ctx.author.send("You took too long to respond.")
+	# Catch anything else
+	except Exception as e:
+		print(e)
+		print("Error occured in suggest command")
+#-------------------------------------------------------------------------------
 #----------------------------- Spreadsheet Filler ------------------------------
 #-------------------------------------------------------------------------------
 
@@ -197,87 +238,6 @@ async def joinEvent(ctx):
 			print("JoinEvent called in wrong server")
 			print(e)
 #-------------------------------------------------------------------------------
-#------------------------------ GET Admin Commands -----------------------------
-#-------------------------------------------------------------------------------	
-@bot.command(pass_context = True)
-@commands.has_permissions(administrator=True)
-@commands.cooldown(1, 600, commands.BucketType.user)
-async def ahelp(ctx):
-	# Get/Set Language
-	user = ctx.message.author.id
-	language = LangCog.languagePicker(user)
-	sheet = discord.Embed(title=language[5], description=language[6], color=0x0000FF)
-	sheet.add_field(name=language[7], value=language[8] + '\n' + language[9], inline=False)
-	sheet.add_field(name=language[10], value=language[11] + '\n' + language[12], inline=False)
-	sheet.add_field(name=language[13], value=language[14] + '\n' + language[15], inline=False)
-	sheet.add_field(name=language[16], value=language[17] + '\n' + language[18], inline=False)
-	sheet.add_field(name=language[19], value=language[20] + '\n' + language[21], inline=False)
-	sheet.add_field(name=language[22], value=language[23] + '\n' + language[24], inline=False)
-	sheet.add_field(name=language[25], value=language[26] + '\n' + language[27], inline=False)
-	sheet.add_field(name=language[28], value=language[29] + '\n' + language[30] + '\n' + language[31], inline=False)
-	sheet.add_field(name=language[32], value=language[33] + '\n' + language[34], inline=False)
-	sheet.add_field(name=language[35], value=language[36] + '\n' + language[37], inline=False)
-	sheet.add_field(name=language[38], value=language[39] + '\n' + language[40] + '\n' + language[41], inline=False)
-	sheet.add_field(name=language[42], value=language[43] + '\n' + language[44] + '\n' + language[45], inline=False)
-	await ctx.send(embed=sheet)
-#-------------------------------------------------------------------------------
-#------------------------------ HELP Override -----------------------------
-#-------------------------------------------------------------------------------	
-@bot.command(pass_context = True)
-@commands.cooldown(1, 600, commands.BucketType.user)
-async def help(ctx):
-	# Get/Set Language
-	user = ctx.message.author.id
-	language = LangCog.languagePicker(user)
-	sheet2 = discord.Embed(title=language[47], description=language[48], color=0x0000FF)
-	sheet2.add_field(name=language[49], value=language[50], inline=False)
-	sheet2.add_field(name=language[51], value=language[52], inline=False)
-	sheet2.add_field(name=language[53], value=language[54] + '\n' + language[55], inline=False)
-	sheet2.add_field(name=language[10], value=language[11] + '\n' + language[12], inline=False)
-	sheet2.add_field(name=language[56], value=language[57] + '\n' + language[58], inline=False)
-	sheet2.add_field(name=language[19], value=language[20] + '\n' + language[21], inline=False)
-	sheet2.add_field(name=language[22], value=language[23] + '\n' + language[24], inline=False)
-	sheet2.add_field(name=language[13], value=language[14] + '\n' + language[15], inline=False)
-	sheet2.add_field(name=language[59], value=language[60] + '\n' + language[61] + '\n' + language[62], inline=False)
-	sheet2.add_field(name=language[63], value=language[64] + '\n' + language[65], inline=False)
-	sheet2.add_field(name=language[66], value=language[67], inline=False)
-	sheet2.add_field(name=language[32], value=language[33], inline=False)
-	sheet2.add_field(name=language[35], value=language[36], inline=False)
-	sheet2.add_field(name=language[25], value=language[26] + '\n' + language[27], inline=False)
-	sheet2.add_field(name=language[68], value=language[69] + '\n' + language[70] + '\n' + language[71], inline=False)
-	sheet2.add_field(name=language[72], value=language[73] + '\n' + language[74], inline=False)
-	sheet2.add_field(name=language[75], value=language[76], inline=False)
-	sheet2.add_field(name=language[77], value=language[78], inline=False)
-	await ctx.send(embed=sheet2)
-
-#-------------------------------------------------------------------------------
-#------------------------------ SETUP Command ----------------------------------
-#-------------------------------------------------------------------------------
-@bot.command(pass_context = True)
-@commands.has_permissions(administrator=True)
-@commands.cooldown(1, 1800, commands.BucketType.user)
-async def setup(ctx):
-	# Get/Set Language
-	user = ctx.message.author.id
-	language = LangCog.languagePicker(user)
-	# Send text wall 
-	await ctx.send(language[79] + '\n' + language[80] + '\n' + language[81])
-	await asyncio.sleep(5)
-	await ctx.send(language[82] + '\n' + language[83] + '\n' + language[84] + '\n' + language[85] + '\n' + language[86])
-	await asyncio.sleep(10)
-	await ctx.send(language[82] + '\n' + language[87] + '\n' + language[88] + '\n' + language[89])
-	await asyncio.sleep(15)
-	await ctx.send(language[82] + '\n' + language[90] + '\n' + language[91] + '\n' + language[92] + '\n' + language[93] + '\n' + language[94])
-	await asyncio.sleep(20)
-	await ctx.send(language[82] + '\n' + language[95] + '\n' + language[96])
-	await asyncio.sleep(10)
-	await ctx.send(language[82] + '\n' + language[97] + '\n' + language[98] + '\n' + language[99] + '\n' + language[100])
-	await asyncio.sleep(20)
-	await ctx.send(language[82] + '\n' + language[101] + '\n' + language[102] + '\n' + language[103] + '\n' + language[104] + '\n' + language[105])
-
-
-
-#-------------------------------------------------------------------------------
 #------------------------------ Set Announcement Channel -----------------------------
 #-------------------------------------------------------------------------------	
 @bot.command(pass_context = True)
@@ -299,288 +259,6 @@ async def updates(ctx):
 		})
 		await ctx.send(language[116])
 	await ctx.message.delete()
-#-------------------------------------------------------------------------------
-#------------------------------ SET Solo Elo Score -----------------------------
-#-------------------------------------------------------------------------------	
-@bot.command(pass_context = True)
-@commands.cooldown(1, 60, commands.BucketType.user)
-async def setSolo(ctx,elo):
-	user = ctx.message.author.id
-	user2 = ctx.message.author.id
-	# Get/Set Language
-	language = LangCog.languagePicker(user)
-	guild = ctx.message.guild.id
-	num = float(elo)
-	if num >= 500 or num < 0:
-		await ctx.send(language[117])
-	else:
-		guild = bot.get_guild(guild)
-		username = ((await guild.fetch_member(user)).nick)
-		if username == None:
-			username = ((await guild.fetch_member(user)).name)
-			
-		await ctx.send(language[118])
-		
-		fRef = db.reference('/users/{0}'.format(user))
-		if fRef.get() == None:
-			# Add to scope list
-			newRef = db.reference('/userIDs/{0}'.format(user))
-			newRef.set({
-			'scope': True
-			})
-			# Add to user list
-			fRef.set({
-			'brwins': 0,
-			'clans': {
-				'currentclan': "none"
-			},
-			'lang': 'english',
-			'name': username,
-			'onevsone': num
-			})
-			await ctx.send(embed=profileDisplay(ctx,user,user2,username))
-		else:
-			fRef.update({
-			'onevsone': num
-			})
-			await ctx.send(embed=profileDisplay(ctx,user,user2,username))
-#-------------------------------------------------------------------------------
-#--------------------------------- SET Clan ------------------------------------
-#-------------------------------------------------------------------------------	
-@bot.command(pass_context = True)
-@commands.cooldown(1, 60, commands.BucketType.user)
-async def setclan(ctx,name):
-	# Get user ID and guild ID
-	user2 = ctx.message.author.id
-	user = ctx.message.author.id
-	guild = ctx.message.guild.id
-	# Convert clan name for database
-	clan = name.upper()
-	clan = clan.replace('.', 'period5')
-	clan = clan.replace('$', 'dollar5')
-	clan = clan.replace('#', 'htag5')
-	clan = clan.replace('[', 'lbracket5')
-	clan = clan.replace('/', 'slash5')
-	clan = clan.replace(']', 'rbracket5')
-	clan = clan.replace('?', 'qmark5')
-	
-	guild = bot.get_guild(guild)
-	username = ((await guild.fetch_member(user)).nick)
-	if username == None:
-		username = ((await guild.fetch_member(user)).name)
-	
-	# check if user exists and update clan or create user
-	fRef = db.reference('/users/{0}'.format(user))
-	if fRef.get() == None:
-		# Add to scope list
-		newRef = db.reference('/userIDs/{0}'.format(user))
-		newRef.set({
-		'scope': True
-		})
-		# Add to user list
-		fRef.set({
-		'brwins': 0,
-		'clans': {
-			clan: {
-				'wins': 0
-				},
-			'currentclan': clan
-		},
-		'lang': 'english',
-		'name': username,
-		'onevsone': 0
-		})
-		await ctx.send(embed=profileDisplay(ctx,user,user2,username))
-	else:
-		fRef = db.reference('/users/{0}/clans'.format(user))
-		info = fRef.get()
-		infoList = list(info.items())
-		clans = []
-		
-		for i in range(len(infoList)):
-			clans.append(infoList[i][0])
-			
-		if clan not in clans:
-			fRef.update({
-			clan: {
-				'wins': 0
-			},
-			'currentclan': clan
-			})
-		else:
-			fRef.update({
-			'currentclan': clan
-			})
-		await ctx.send(embed=profileDisplay(ctx,user,user2,username))
-
-#-------------------------------------------------------------------------------
-#------------------------------ PROFILE COMMAND --------------------------------
-#-------------------------------------------------------------------------------
-
-def profileDisplay(ctx,user,user2,username):
-	# Get/Set Language
-	language = LangCog.languagePicker(user2)
-	# Get user ID
-	ref = db.reference('/users/{0}'.format(user))
-	info = ref.get()
-	
-	cw = 0
-	wins = []
-	points = []
-	
-	infoList = list(info.items())
-	if(infoList[1][1]['currentclan'] == "none"):
-		br = infoList[0][1]
-		ovo = infoList[4][1]
-		clan = infoList[1][1]['currentclan']
-		lang = infoList[2][1]
-	else:
-		# Need to fix this error at some point, clan field of embed becomes currentClan, 'str' has no attribute 'items' error
-		clans = infoList[1][1]
-		clans = list(clans.items())
-		x = len(clans) - 2
-		clanList = []
-		try:
-			# Loop through all user's clans
-			while x >= 0:
-				clanList.append(clans[x][0])
-				temp = clans[x][1]
-				try:
-					temp = list(temp.items())
-					ref = db.reference('/users/{0}/clans/{1}'.format(user,clans[x][0]))
-					# Set points if missing
-					ref2 = db.reference('/users/{0}/clans/{1}/points'.format(user,clans[x][0]))
-					p = ref2.get()
-					if p == None:
-						ref.update({
-							'points': 0
-							})
-						points.append(0)
-					else:
-						points.append(p)
-					# Set wins if missing
-					ref3 = db.reference('/users/{0}/clans/{1}/wins'.format(user,clans[x][0]))
-					w = ref3.get()
-					if w == None:
-						ref.update({
-							'wins': 0
-							})
-						wins.append(0)
-					else:
-						wins.append(int(w))
-					# Set previous if missing
-					ref4 = db.reference('/users/{0}/clans/{1}/previous'.format(user,clans[x][0]))
-					if ref4.get() == None:
-						ref.update({
-							'previous': "test"
-							})
-				except Exception as e:
-					print(temp)
-					print(e)
-				x = x - 1
-		except Exception as e:
-			print(e)
-		try:
-			br = infoList[0][1]
-			ovo = infoList[4][1]
-			lang = infoList[2][1]
-			clan = infoList[1][1]['currentclan']
-			if '.' or '$' or'#' or '[' or '/' or ']' or '?' in clan:
-				clan = clan.replace('.', 'period5')
-				clan = clan.replace('$', 'dollar5')
-				clan = clan.replace('#', 'htag5')
-				clan = clan.replace('[', 'lbracket5')
-				clan = clan.replace('/', 'slash5')
-				clan = clan.replace(']', 'rbracket5')
-				clan = clan.replace('?', 'qmark5')
-			# CW = total clan wins, unused at the moment
-			#cw = infoList[1][1]['{0}'.format(clan)]['wins']
-			br = int(br)
-			ovo = float(ovo)
-			#cw = int(cw)
-		except Exception as e:
-			print(e)
-			print("first")
-	try:
-		if(lang == None):
-			lang = "english"
-		guild = ctx.message.guild.id
-		# Profile Embed
-		sheet = discord.Embed(title=language[129], description=language[130].format(username), color=0x0000FF)
-		sheet.add_field(name="Language", value=lang, inline=False)
-		sheet.add_field(name=language[131], value=clan, inline=False)
-		sheet.add_field(name=language[132], value=ovo, inline=False)
-		sheet.add_field(name=language[133], value=br, inline=False)
-		# Loop through all user clans
-		for x in range(len(wins)):
-			# + language[164].format(points[x])
-			sheet.add_field(name=language[134].format(clanList[x]), value=language[164].format(wins[x],points[x]), inline=False)
-		return sheet
-	except Exception as e:
-		print(e)
-
-@bot.command(pass_context = True)
-@commands.cooldown(1, 60, commands.BucketType.user)
-async def profile(ctx, name: discord.Member = None):
-	# check if user wants to display self or other
-	user2 = ctx.message.author.id
-	if name == None:
-		user = ctx.message.author.id
-	else:
-		user = name.id
-	# Get users discord nickname or default name
-	guild = ctx.message.guild.id
-	guild = bot.get_guild(guild)
-	# check if user exists
-	ref3 = db.reference('/users/{0}'.format(user))
-	if ref3.get() == None:
-		# Add to scope list
-		newRef = db.reference('/userIDs/{0}'.format(user))
-		newRef.set({
-		'scope': True
-		})
-		# Add to user list
-		# Wrap in try/except in future, for this scenario t!profile @user (user does not exist)
-		username = ((await guild.fetch_member(user)).nick)
-		if username == None:
-			username = (await guild.fetch_member(user)).name
-		# Add name to database (Incase a user does not exist in a discord server)
-		ref5 = db.reference('/users/{0}/name'.format(user))
-		ref5.set({
-		'name': username
-		})
-		# Get guild id for old database
-		guild = ctx.message.guild.id
-		# Create new user
-		ref = db.reference('/users/{0}'.format(user))
-		ref.set({
-		'brwins': 0,
-		'clans': {
-			'currentclan': "none"
-		},
-		'lang': 'english',
-		'name': username,
-		'onevsone': 0
-		})
-		# Display profile
-		await ctx.send(embed=profileDisplay(ctx,user,user2,username))
-	else:
-		# Get name from database rather than discord. OR set it if not already in database
-		ref4 = db.reference('/users/{0}/name'.format(user))
-		username2 = ref4.get()
-		username = ((await guild.fetch_member(user)).nick)
-		if username == None:
-			username = (await guild.fetch_member(user)).name
-		if username2 == None:
-			ref3.update({
-			'name': username
-			})
-			# Display profile
-			await ctx.send(embed=profileDisplay(ctx,user,user2,username))
-		else:
-			# Display profile
-			await ctx.send(embed=profileDisplay(ctx,user,user2,username))
-
 #-------------------------------------------------------------------------------
 #------------------------- 1v1 LEADERBOARD COMMAND -----------------------------
 #-------------------------------------------------------------------------------
@@ -790,49 +468,6 @@ async def clanRanker():
 async def botstatus(ctx,*,text):
 	await bot.change_presence(activity=discord.Game(name=text))
 	await ctx.message.delete()
-#-------------------------------------------------------------------------------
-#------------------------------ Check Cog Status -------------------------------
-#-------------------------------------------------------------------------------	
-@bot.command(pass_context = True)
-@commands.cooldown(1, 300, commands.BucketType.user)
-async def status(ctx):
-	stat = discord.Embed(title="Bot Status",description="What should be working.", color=0x0000FF)
-	try:
-		await bot.load_extension("Error")
-	except Exception as e:
-		if isinstance(e,discord.ext.commands.ExtensionAlreadyLoaded):
-			stat.add_field(name="Error Handling", value="Online", inline=False)
-		else:
-			stat.add_field(name="Error Handling", value="Offline", inline=False)
-	try:
-		await bot.load_extension("LangCog")
-	except Exception as e:
-		if isinstance(e,discord.ext.commands.ExtensionAlreadyLoaded):
-			stat.add_field(name="Language Translation (Effects most commands)", value="Online", inline=False)
-		else:
-			stat.add_field(name="Language Translation (Effects most commands)", value="Offline", inline=False)
-	try:
-		await bot.load_extension("Clans")
-	except Exception as e:
-		if isinstance(e,discord.ext.commands.ExtensionAlreadyLoaded):
-			stat.add_field(name="Clans commands", value="Online", inline=False)
-		else:
-			stat.add_field(name="Clans commands", value="Offline", inline=False)
-	try:
-		await bot.load_extension("Wins")
-	except Exception as e:
-		if isinstance(e,discord.ext.commands.ExtensionAlreadyLoaded):
-			stat.add_field(name="Win Tracking", value="Online", inline=False)
-		else:
-			stat.add_field(name="Win Tracking", value="Offline", inline=False)
-	try:
-		await bot.load_extension("Poll")
-	except Exception as e:
-		if isinstance(e,discord.ext.commands.ExtensionAlreadyLoaded):
-			stat.add_field(name="Poll System", value="Online", inline=False)
-		else:
-			stat.add_field(name="Poll System", value="Offline", inline=False)
-	await ctx.send(embed = stat)
 
 #-------------------------------------------------------------------------------
 #------------------------------ PING CRASH TEST --------------------------------
@@ -1187,67 +822,17 @@ async def setlanguage(ctx, lang):
 	except Exception as e:
 		print(e)
 #-------------------------------------------------------------------------------
-#----------------------------- Load/Unload Lang Cog ----------------------------
+#----------------------------- Load/Unload Switch Cog ---------------------------
 #-------------------------------------------------------------------------------
 @bot.command(pass_context = True)
 @commands.is_owner()
-async def langSwitch(ctx):
+async def switch(ctx):
 	try:
-		global LangCog
-		await bot.load_extension("LangCog")
-		LangCog = bot.get_cog("LangCog")
-		await ctx.send("Language is online")
+		await bot.load_extension("Switch")
+		await ctx.send("Switch is online")
 	except commands.ExtensionAlreadyLoaded:
-		await bot.unload_extension("LangCog")
-		await ctx.send("Language is offline")
-#-------------------------------------------------------------------------------
-#----------------------------- Load/Unload Clans Cog ---------------------------
-#-------------------------------------------------------------------------------
-@bot.command(pass_context = True)
-@commands.is_owner()
-async def clanSwitch(ctx):
-	try:
-		await bot.load_extension("Clans")
-		await ctx.send("Clans is online")
-	except commands.ExtensionAlreadyLoaded:
-		await bot.unload_extension("Clans")
-		await ctx.send("Clans is offline")
-#-------------------------------------------------------------------------------
-#----------------------------- Load/Unload Wins Cog ----------------------------
-#-------------------------------------------------------------------------------
-@bot.command(pass_context = True)
-@commands.is_owner()
-async def winSwitch(ctx):
-	try:
-		await bot.load_extension("Wins")
-		await ctx.send("Wins is online")
-	except commands.ExtensionAlreadyLoaded:
-		await bot.unload_extension("Wins")
-		await ctx.send("Wins is offline")
-#-------------------------------------------------------------------------------
-#----------------------------- Load/Unload Poll Cog ----------------------------
-#-------------------------------------------------------------------------------
-@bot.command(pass_context = True)
-@commands.is_owner()
-async def pollSwitch(ctx):
-	try:
-		await bot.load_extension("Poll")
-		PollCog = bot.get_cog("Poll")
-		PollCog.pollStart()
-		await ctx.send("Poll is online")
-		
-		#Do before calling poll update, pass 
-		#ref = db.reference('/openPolls')
-		#info = ref.get()
-		#polls = list(info.items())
-		#for i in range(len(polls)):
-			#channel = bot.get_channel(int(polls[i]))
-			#message = await channel2.fetch_message(int(clans[i][1]['message']))	
-			#elite_task = tasks.loop(seconds=5.0,count=None,reconnect=True)(imagelooper)
-			#elite_task.start(channel)
-	except commands.ExtensionAlreadyLoaded:
-		await bot.unload_extension("Poll")
-		await ctx.send("Poll is offline")
+		await bot.unload_extension("Switch")
+		await ctx.send("Switch is offline")
 #-------------------------------------------------------------------------------
 #------------------------------ START Image Tracking ---------------------------
 #-------------------------------------------------------------------------------
@@ -1579,4 +1164,4 @@ async def imageTrack(ctx):
 #-------------------------------------------------------------------------------
 #------------------------------- RUN LINE --------------------------------------
 #-------------------------------------------------------------------------------
-bot.run('Bot Token Goes Here', reconnect=True)
+bot.run('Bot token goes here', reconnect=True)
