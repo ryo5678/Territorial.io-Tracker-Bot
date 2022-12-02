@@ -1,5 +1,5 @@
 import discord, random, math, asyncio, firebase_admin, requests, io, re, datetime, os, cv2, discord.utils, subprocess, statistics
-from discord.ext import commands
+from discord.ext import commands, tasks
 from discord.ext.commands import bot
 from firebase_admin import db
 import datetime
@@ -13,6 +13,87 @@ winAdmins = ((138752093308583936,"ELITE"),(524835935276498946,"ELITE"),(74638169
 class Wins(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
+	#-------------------------------------------------------------------------------
+	#------------------------------ Best Players Log Tracking ----------------------
+	#-------------------------------------------------------------------------------	
+	@tasks.loop(seconds=30.0,count=None,reconnect=True)
+	async def bestPlayer(self):
+		channel = self.bot.get_channel(918557973209571358)
+		try:
+			message = await channel.fetch_message(
+					channel.last_message_id)
+					
+			mRef = db.reference('/780723109128962070/lastMessageBestPlayer')
+			message2 = int(mRef.get())
+			
+			if message2 != message.id:
+				message2 = message
+				text = message.content
+				channel2 = self.bot.get_channel(1048352090717696020)
+				await channel2.send(text)
+				
+				mRef = db.reference('/780723109128962070')
+				mRef.update({
+				'lastMessageBestPlayer': str(message.id)
+				})
+		except Exception as e:
+			# if message != none crashes bot if try/catch failed on message = await
+			print("An erorr occured in best player log, previous message null")
+			print(e)
+	#-------------------------------------------------------------------------------
+	#------------------------------ Top Players Tracking ---------------------------
+	#-------------------------------------------------------------------------------	
+	@tasks.loop(seconds=3600.0,count=None,reconnect=True)
+	async def topPlayer(self):
+		channel = self.bot.get_channel(918557607298470009)
+		try:
+			message = await channel.fetch_message(
+					channel.last_message_id)
+					
+			mRef = db.reference('/780723109128962070/lastMessageTopPlayer')
+			message2 = int(mRef.get())
+			
+			if message2 != message.id:
+				message2 = message
+				text = message.content
+				channel2 = self.bot.get_channel(1048351975751819305)
+				await channel2.send(text)
+				
+				mRef = db.reference('/780723109128962070')
+				mRef.update({
+				'lastMessageTopPlayer': str(message.id)
+				})
+		except Exception as e:
+			# if message != none crashes bot if try/catch failed on message = await
+			print("An erorr occured in top player, previous message null")
+			print(e)
+	#-------------------------------------------------------------------------------
+	#------------------------------ Top Clans Tracking -----------------------------
+	#-------------------------------------------------------------------------------	
+	@tasks.loop(seconds=3600.0,count=None,reconnect=True)
+	async def bestClan(self):
+		channel = self.bot.get_channel(917733087859834890)
+		try:
+			message = await channel.fetch_message(
+					channel.last_message_id)
+					
+			mRef = db.reference('/780723109128962070/lastMessageBestClan')
+			message2 = int(mRef.get())
+			
+			if message2 != message.id:
+				message2 = message
+				text = message.content
+				channel2 = self.bot.get_channel(1048352009469820928)
+				await channel2.send(text)
+				
+				mRef = db.reference('/780723109128962070')
+				mRef.update({
+				'lastMessageBestClan': str(message.id)
+				})
+		except Exception as e:
+			# if message != none crashes bot if try/catch failed on message = await
+			print("An erorr occured in best clans, previous message null")
+			print(e)
 	#-------------------------------------------------------------------------------
 	#------------------------------ Remove Wins Self Version -----------------------
 	#-------------------------------------------------------------------------------	
@@ -135,15 +216,15 @@ class Wins(commands.Cog):
 		# Get language cog
 		LangCog = self.bot.get_cog("LangCog")
 		# Get image channel list
-		ref = db.reference('/imageChannels')
-		info = ref.get()
-		channels = list(info.items())
-		channelList = []
+		#ref = db.reference('/imageChannels')
+		#info = ref.get()
+		#channels = list(info.items())
+		#channelList = []
 		# Check if command called in tracking channel
-		for i in range(len(channels)):
-			channelList.append(int(channels[i][1]['channelID']))
-		if int(ctx.channel.id) not in channelList:
-			return await ctx.send("Command used outside of a win tracking channel. Please get an administrator to specify a channel with t!imagetrack")
+		#for i in range(len(channels)):
+		#	channelList.append(int(channels[i][1]['channelID']))
+		#if int(ctx.channel.id) not in channelList:
+		#	return await ctx.send("Command used outside of a win tracking channel. Please get an administrator to specify a channel with t!imagetrack")
 		# Remove Try/Except eventually, using temporarily to catch bugs
 		try:
 			# Set message object
