@@ -33,8 +33,12 @@ class Clans(commands.Cog):
 			await ctx.send("Maximum clans is 5, please try again.")
 			ctx.command.reset_cooldown(ctx)
 			return
-		# Set times to search back 1 week
-		timeDif = timedelta(9)
+		# Set times to search back 6 months for $5 patrons
+		if(user == 746994669715587182 or user == 138752093308583936 or user == 681457461441593371):
+			timeDif = timedelta(180)
+		else:
+		# Set times to search back 3 weeks
+			timeDif = timedelta(21)
 		newTime = ctx.message.created_at
 		oldTime = newTime - timeDif
 		newTime = newTime + timedelta(1)
@@ -55,9 +59,13 @@ class Clans(commands.Cog):
 		mS = ''
 		gF = 0
 		gS = 0
-		ref = db.reference('gameData')
+		ref = db.reference('gameData4')
+		ref5 = db.reference('gameData5')
 		snapshot = ref.order_by_child('Time').start_at(str(oldTime)).end_at(str(newTime)).get()
+		snapshot5 = ref5.order_by_child('Time').start_at(str(oldTime)).end_at(str(newTime)).get()
 		snapshot = list(snapshot.items())
+		snapshot5 = list(snapshot5.items())
+		snapshot = snapshot + snapshot5
 		for clan in clanList:
 			try:
 				clan.strip("[]")
@@ -187,15 +195,23 @@ class Clans(commands.Cog):
 			if (clanData == None):
 				await ctx.send(language[156].format(clan))
 			else:
-				# Set times to search back 1 week
-				timeDif = timedelta(7)
+				# $5 Patron, 6 months instead of 1 week
+				if(user == 746994669715587182 or user == 138752093308583936 or user == 681457461441593371):
+					timeDif = timedelta(180)
+				else:
+				# Set times to search back 3 weeks
+					timeDif = timedelta(21)
 				newTime = ctx.message.created_at
 				oldTime = newTime - timeDif
 				newTime = newTime + timedelta(1)
 				# Get all games from one week ago to present
-				ref = db.reference('gameData')
+				ref = db.reference('gameData4')
+				ref5 = db.reference('gameData5')
 				snapshot = ref.order_by_child('Time').start_at(str(oldTime)).end_at(str(newTime)).get()
+				snapshot5 = ref5.order_by_child('Time').start_at(str(oldTime)).end_at(str(newTime)).get()
 				snapshot = list(snapshot.items())
+				snapshot5 = list(snapshot5.items())
+				snapshot = snapshot + snapshot5
 				games = list()
 				for i in range(len(snapshot)):
 					if(snapshot[i][1]['Clan'] == clan):
@@ -246,7 +262,10 @@ class Clans(commands.Cog):
 					y = clanData['wins']
 				except:
 					snapshot2 = ref.order_by_child('Clan').equal_to(clan).get()
+					snapshot3 = ref5.order_by_child('Clan').equal_to(clan).get()
 					snapshot2 = list(snapshot2.items())
+					snapshot3 = list(snapshot3.items())
+					snapshot2 = snapshot2 + snapshot3
 					y = len(snapshot2)
 					ref2.update({
 					'wins': y

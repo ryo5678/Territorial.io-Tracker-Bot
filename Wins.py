@@ -95,6 +95,33 @@ class Wins(commands.Cog):
 			print("An erorr occured in best clans, previous message null")
 			print(e)
 	#-------------------------------------------------------------------------------
+	#------------------------------ User Count Tracking ----------------------------
+	#-------------------------------------------------------------------------------	
+	@tasks.loop(seconds=3600.0,count=None,reconnect=True)
+	async def userCount(self):
+		channel = self.bot.get_channel(798537217106116608)
+		try:
+			message = await channel.fetch_message(
+					channel.last_message_id)
+					
+			mRef = db.reference('/780723109128962070/lastMessageUserCount')
+			message2 = int(mRef.get())
+			
+			if message2 != message.id:
+				message2 = message
+				text = message.content
+				channel2 = self.bot.get_channel(1048355200601178243)
+				await channel2.send(text)
+				
+				mRef = db.reference('/780723109128962070')
+				mRef.update({
+				'lastMessageUserCount': str(message.id)
+				})
+		except Exception as e:
+			# if message != none crashes bot if try/catch failed on message = await
+			print("An erorr occured in user count, previous message null")
+			print(e)
+	#-------------------------------------------------------------------------------
 	#------------------------------ Remove Wins Self Version -----------------------
 	#-------------------------------------------------------------------------------	
 	@commands.command(pass_context = True)

@@ -1,7 +1,8 @@
 import discord, random, math, asyncio, firebase_admin, requests, io, re, datetime, os, cv2, discord.utils, subprocess, statistics
-from discord.ext import commands
+from discord.ext import commands, tasks
 from discord.ext.commands import bot
 from firebase_admin import db
+from urllib.request import Request, urlopen
 
 class Profile(commands.Cog):
 	def __init__(self, bot):
@@ -24,7 +25,7 @@ class Profile(commands.Cog):
 		infoList = list(info.items())
 		if(infoList[1][1]['currentclan'] == "none"):
 			br = infoList[0][1]
-			ovo = infoList[4][1]
+			#ovo = infoList[4][1]
 			clan = infoList[1][1]['currentclan']
 			lang = infoList[2][1]
 		else:
@@ -75,7 +76,7 @@ class Profile(commands.Cog):
 				print(e)
 			try:
 				br = infoList[0][1]
-				ovo = infoList[4][1]
+				#ovo = infoList[4][1]
 				lang = infoList[2][1]
 				clan = infoList[1][1]['currentclan']
 				if '.' or '$' or'#' or '[' or '/' or ']' or '?' in clan:
@@ -89,7 +90,7 @@ class Profile(commands.Cog):
 				# CW = total clan wins, unused at the moment
 				#cw = infoList[1][1]['{0}'.format(clan)]['wins']
 				br = int(br)
-				ovo = float(ovo)
+				#ovo = float(ovo)
 				#cw = int(cw)
 			except Exception as e:
 				print(e)
@@ -102,7 +103,7 @@ class Profile(commands.Cog):
 			sheet = discord.Embed(title=language[129], description=language[130].format(username), color=0x0000FF)
 			sheet.add_field(name="Language", value=lang, inline=False)
 			sheet.add_field(name=language[131], value=clan, inline=False)
-			sheet.add_field(name=language[132], value=ovo, inline=False)
+			#sheet.add_field(name=language[132], value=ovo, inline=False)
 			sheet.add_field(name=language[133], value=br, inline=False)
 			# Loop through all user clans
 			for x in range(len(wins)):
@@ -115,6 +116,7 @@ class Profile(commands.Cog):
 	@commands.cooldown(1, 60, commands.BucketType.user)
 	async def profile(self,ctx, name: discord.Member = None):
 		# check if user wants to display self or other
+		profile = self.bot.get_cog("Profile")
 		user2 = ctx.message.author.id
 		if name == None:
 			user = ctx.message.author.id
@@ -155,7 +157,7 @@ class Profile(commands.Cog):
 			'onevsone': 0
 			})
 			# Display profile
-			await ctx.send(embed=profileDisplay(ctx,user,user2,username))
+			await ctx.send(embed=profile.profileDisplay(ctx,user,user2,username))
 		else:
 			# Get name from database rather than discord. OR set it if not already in database
 			ref4 = db.reference('/users/{0}/name'.format(user))
@@ -168,10 +170,10 @@ class Profile(commands.Cog):
 				'name': username
 				})
 				# Display profile
-				await ctx.send(embed=profileDisplay(ctx,user,user2,username))
+				await ctx.send(embed=profile.profileDisplay(ctx,user,user2,username))
 			else:
 				# Display profile
-				await ctx.send(embed=profileDisplay(ctx,user,user2,username))
+				await ctx.send(embed=profile.profileDisplay(ctx,user,user2,username))
 	#-------------------------------------------------------------------------------
 	#--------------------------------- SET Clan ------------------------------------
 	#-------------------------------------------------------------------------------	
@@ -179,6 +181,7 @@ class Profile(commands.Cog):
 	@commands.cooldown(1, 60, commands.BucketType.user)
 	async def setclan(self,ctx,name):
 		# Get user ID and guild ID
+		profile = self.bot.get_cog("Profile")
 		user2 = ctx.message.author.id
 		user = ctx.message.author.id
 		guild = ctx.message.guild.id
@@ -187,9 +190,9 @@ class Profile(commands.Cog):
 		clan = clan.replace('.', 'period5')
 		clan = clan.replace('$', 'dollar5')
 		clan = clan.replace('#', 'htag5')
-		clan = clan.replace('[', 'lbracket5')
+		clan = clan.replace('[', '')
 		clan = clan.replace('/', 'slash5')
-		clan = clan.replace(']', 'rbracket5')
+		clan = clan.replace(']', '')
 		clan = clan.replace('?', 'qmark5')
 		
 		guild = self.bot.get_guild(guild)
@@ -218,7 +221,7 @@ class Profile(commands.Cog):
 			'name': username,
 			'onevsone': 0
 			})
-			await ctx.send(embed=profileDisplay(ctx,user,user2,username))
+			await ctx.send(embed=profile.profileDisplay(ctx,user,user2,username))
 		else:
 			fRef = db.reference('/users/{0}/clans'.format(user))
 			info = fRef.get()
@@ -239,52 +242,86 @@ class Profile(commands.Cog):
 				fRef.update({
 				'currentclan': clan
 				})
-			await ctx.send(embed=profileDisplay(ctx,user,user2,username))
+			await ctx.send(embed=profile.profileDisplay(ctx,user,user2,username))
+	
 	#-------------------------------------------------------------------------------
-	#------------------------------ SET Solo Elo Score -----------------------------
-	#-------------------------------------------------------------------------------	
+	#--------------------------- Find a user's 1v1 stats ---------------------------
+	#-------------------------------------------------------------------------------
 	@commands.command(pass_context = True)
 	@commands.cooldown(1, 60, commands.BucketType.user)
-	async def setSolo(self,ctx,elo):
-		user = ctx.message.author.id
-		user2 = ctx.message.author.id
-		# Get/Set Language
-		LangCog = self.bot.get_cog("LangCog")
-		language = LangCog.languagePicker(user)
-		guild = ctx.message.guild.id
-		num = float(elo)
-		if num >= 500 or num < 0:
-			await ctx.send(language[117])
-		else:
-			guild = self.bot.get_guild(guild)
-			username = ((await guild.fetch_member(user)).nick)
-			if username == None:
-				username = ((await guild.fetch_member(user)).name)
-				
-			await ctx.send(language[118])
+	async def findPlayer(self,ctx,*,user):
+		try:
+			await ctx.send("If you don't get the expected results, make sure you include things like clan tags. The name should match exactly with what is shown in territorial.")
 			
-			fRef = db.reference('/users/{0}'.format(user))
-			if fRef.get() == None:
-				# Add to scope list
-				newRef = db.reference('/userIDs/{0}'.format(user))
-				newRef.set({
-				'scope': True
-				})
-				# Add to user list
-				fRef.set({
-				'brwins': 0,
-				'clans': {
-					'currentclan': "none"
-				},
-				'lang': 'english',
-				'name': username,
-				'onevsone': num
-				})
-				await ctx.send(embed=profileDisplay(ctx,user,user2,username))
-			else:
-				fRef.update({
-				'onevsone': num
-				})
-				await ctx.send(embed=profileDisplay(ctx,user,user2,username))
+			# Download the webpage as text
+			req = Request(
+				url = "https://territorial.io/players",
+				headers={'User-Agent': 'Mozilla/5.0'}
+			)
+			with urlopen(req) as webpage:
+				content = webpage.read().decode()
+			# print(content)
+			# Create db reference and convert string to list
+			content = content.splitlines()
+			content.pop(3)
+			content.pop(2)
+			content.pop(1)
+			content.pop(0)
+			
+			dups = {}
+			sheet = discord.Embed(title="Find Player", description=user, color=0x0000FF)
+			for i in range(len(content)):
+				text = content[i].split(', ')
+				if(user in text[1]):
+					sheet.add_field(name="{0}. {1}".format(text[0],text[1]), value="Score: {0}, Wins: {1}".format(text[2],text[3]), inline=False)
+			await ctx.send(embed=sheet)
+			
+		except Exception as e:
+			print("Error in findPlayer command")
+			print(e)
+	#-------------------------------------------------------------------------------
+	#--------------------------- Display Live Top 100 ------------------------------
+	#-------------------------------------------------------------------------------
+	@commands.command(pass_context = True)
+	@commands.cooldown(1, 60, commands.BucketType.user)
+	async def topPlayers(self,ctx):
+		try:
+			# Download the webpage as text
+			req = Request(
+				url = "https://territorial.io/players", 
+				headers={'User-Agent': 'Mozilla/5.0'}
+			)
+			with urlopen(req) as webpage:
+				content = webpage.read().decode()
+			# print(content)
+			# Create db reference and convert string to list
+			content = content.splitlines()
+			content.pop(3)
+			content.pop(2)
+			content.pop(1)
+			content.pop(0)
+			
+			dups = {}
+			sheet = discord.Embed(title="Top 100 Players", description=" ", color=0x0000FF)
+			for i in range(100):
+				text = content[i].split(', ')
+				temp = text[1]
+				if temp not in dups:
+					# Store index of first occurrence and occurrence value
+					dups[temp] = [i, 1]
+				else:
+					#print(dups[temp][1])
+					# Special case for first occurrence
+					if dups[temp][1] != 1:
+						# Use stored occurrence value
+						text[1] = str(temp) + str(dups[temp][1])
+					# Increment occurrence value, index value doesn't matter anymore
+					dups[temp][1] += 1
+				sheet.add_field(name="{0}. {1}".format(text[0],text[1]), value="Score: {0}, Wins: {1}".format(text[2],text[3]), inline=False)
+			await ctx.send(embed=sheet)
+		except Exception as e:
+			print("An erorr occured in topPlayers")
+			print(e)
+	
 async def setup(bot):
 	await bot.add_cog(Profile(bot))
