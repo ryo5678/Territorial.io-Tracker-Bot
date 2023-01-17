@@ -43,24 +43,20 @@ class Help(commands.Cog):
 		language = LangCog.languagePicker(user)
 		# Embed
 		sheet2 = discord.Embed(title=language[47], description=language[48], color=0x0000FF)
-		sheet2.add_field(name=language[49], value=language[50], inline=False)
-		sheet2.add_field(name=language[51], value=language[52], inline=False)
-		sheet2.add_field(name=language[53], value=language[54] + '\n' + language[55], inline=False)
-		sheet2.add_field(name=language[10], value=language[11] + '\n' + language[12], inline=False)
-		sheet2.add_field(name=language[56], value=language[57] + '\n' + language[58], inline=False)
-		sheet2.add_field(name=language[19], value=language[20] + '\n' + language[21], inline=False)
-		sheet2.add_field(name=language[22], value=language[23] + '\n' + language[24], inline=False)
-		sheet2.add_field(name=language[13], value=language[14] + '\n' + language[15], inline=False)
-		sheet2.add_field(name=language[59], value=language[60] + '\n' + language[61] + '\n' + language[62], inline=False)
-		sheet2.add_field(name=language[63], value=language[64] + '\n' + language[65], inline=False)
-		sheet2.add_field(name=language[66], value=language[67], inline=False)
-		sheet2.add_field(name=language[32], value=language[33], inline=False)
-		sheet2.add_field(name=language[35], value=language[36], inline=False)
-		sheet2.add_field(name=language[25], value=language[26] + '\n' + language[27], inline=False)
-		sheet2.add_field(name=language[68], value=language[69] + '\n' + language[70] + '\n' + language[71], inline=False)
-		sheet2.add_field(name=language[72], value=language[73] + '\n' + language[74], inline=False)
+		# Policy
+		sheet2.add_field(name=language[22], value=language[49] + '\n' + language[50] + 
+		'\n' + language[51] + '\n' + language[52] + '\n' + '\u200b', inline=False)
+		# Language Commands
+		sheet2.add_field(name=language[23], value=language[77] + '\n' + language[78] + '\n' + '\u200b', inline=False)
+		# Clan Search Commands
+		sheet2.add_field(name=language[24], value=language[56] + '\n' + language[57] + '\n' + language[58] + '\n' + language[72] + '\n' + language[73] + '\n' + language[74] + '\n' + language[66] + '\n' + language[67] + '\n' + language[32] + '\n' + language[33] + '\n' + language[35] + '\n' + language[36] + '\n' + '\u200b', inline=False)
+		# Player Search Commands
+		sheet2.add_field(name=language[27], value=language[16] + '\n' + language[17] + '\n' + language[18] + '\n' + language[42] + '\n' + language[43] + '\n' + '\u200b', inline=False)
+		# Discord Profile Commands
+		sheet2.add_field(name=language[25], value=language[10] + '\n' + language[11] + '\n' + language[12] + '\n' + language[19] + '\n' + language[20] + '\n' + language[21] + '\n' + language[13] + '\n' + language[14] + '\n' + language[15] + '\n' + language[59] + '\n' + language[60] + '\n' + language[61] + '\n' + language[62] + '\n' + '\u200b', inline=False)
+		# Data Commands
+		sheet2.add_field(name=language[26], value=language[53] + '\n' + language[54] + '\n' + language[55] + '\n' + language[68] + '\n' + language[69] + '\n' + language[70] + '\n' + language[71] + '\n' + '\u200b', inline=False)
 		sheet2.add_field(name=language[75], value=language[76], inline=False)
-		sheet2.add_field(name=language[77], value=language[78], inline=False)
 		await ctx.send(embed=sheet2)
 	#-------------------------------------------------------------------------------
 	#------------------------------ SETUP Command ----------------------------------
@@ -91,6 +87,7 @@ class Help(commands.Cog):
 	#-------------------------------------------------------------------------------
 	#------------------------------ Check Cog Status -------------------------------
 	#-------------------------------------------------------------------------------	
+	# Not functioning correctly, offline cogs do not show up at all.
 	@commands.command(pass_context = True)
 	@commands.cooldown(1, 300, commands.BucketType.user)
 	async def status(self,ctx):
