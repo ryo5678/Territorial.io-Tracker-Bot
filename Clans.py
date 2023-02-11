@@ -61,11 +61,14 @@ class Clans(commands.Cog):
 		gS = 0
 		ref = db.reference('gameData4')
 		ref5 = db.reference('gameData5')
+		ref6 = db.reference('gameData6')
 		snapshot = ref.order_by_child('Time').start_at(str(oldTime)).end_at(str(newTime)).get()
 		snapshot5 = ref5.order_by_child('Time').start_at(str(oldTime)).end_at(str(newTime)).get()
+		snapshot6 = ref6.order_by_child('Time').start_at(str(oldTime)).end_at(str(newTime)).get()
 		snapshot = list(snapshot.items())
+		snapshot6 = list(snapshot6.items())
 		snapshot5 = list(snapshot5.items())
-		snapshot = snapshot + snapshot5
+		snapshot = snapshot + snapshot5 + snapshot6
 		for clan in clanList:
 			try:
 				clan.strip("[]")
@@ -180,6 +183,7 @@ class Clans(commands.Cog):
 		# Get/Set Language
 		user = ctx.message.author.id
 		language = LangCog.languagePicker(user)
+		plt.clf()
 		try:
 			clan.strip("[]")
 			clan = clan.replace('.', 'period5')
@@ -207,11 +211,14 @@ class Clans(commands.Cog):
 				# Get all games from one week ago to present
 				ref = db.reference('gameData4')
 				ref5 = db.reference('gameData5')
+				ref6 = db.reference('gameData6')
 				snapshot = ref.order_by_child('Time').start_at(str(oldTime)).end_at(str(newTime)).get()
 				snapshot5 = ref5.order_by_child('Time').start_at(str(oldTime)).end_at(str(newTime)).get()
+				snapshot6 = ref6.order_by_child('Time').start_at(str(oldTime)).end_at(str(newTime)).get()
 				snapshot = list(snapshot.items())
 				snapshot5 = list(snapshot5.items())
-				snapshot = snapshot + snapshot5
+				snapshot6 = list(snapshot6.items())
+				snapshot = snapshot + snapshot5 + snapshot6
 				games = list()
 				for i in range(len(snapshot)):
 					if(snapshot[i][1]['Clan'] == clan):
@@ -263,14 +270,35 @@ class Clans(commands.Cog):
 				except:
 					snapshot2 = ref.order_by_child('Clan').equal_to(clan).get()
 					snapshot3 = ref5.order_by_child('Clan').equal_to(clan).get()
+					snapshot4 = ref6.order_by_child('Clan').equal_to(clan).get()
 					snapshot2 = list(snapshot2.items())
 					snapshot3 = list(snapshot3.items())
-					snapshot2 = snapshot2 + snapshot3
+					snapshot4 = list(snapshot4.items())
+					snapshot2 = snapshot2 + snapshot3 + snapshot4
 					y = len(snapshot2)
 					ref2.update({
 					'wins': y
 					})
-				
+				# Check for wins2023
+				try:
+					z = clanData['wins2023']
+				except:
+					try:
+						# Set wins2023 if it does not yet exist
+						snapshot3 = ref5.order_by_child('Time').start_at("2022-01-01T00:00:00.000Z").get()
+						snapshot4 = ref6.order_by_child('Clan').equal_to(clan).get()
+						snapshot3 = list(snapshot3.items())
+						snapshot4 = list(snapshot4.items())
+						games = list()
+						for i in range(len(snapshot3)):
+							if(snapshot3[i][1]['Clan'] == clan):
+								games.append(snapshot3[i])
+						z = len(snapshot4) + len(games)
+						ref2.update({
+						'wins2023': z
+						})
+					except Exception as e:
+						print(e)
 				
 				clan = clan.replace('PERIOD5', '.')
 				clan = clan.replace('DOLLAR5', '$')
@@ -281,7 +309,7 @@ class Clans(commands.Cog):
 				clan = clan.replace('QMARK5', '?')
 				
 				score = clanData['score']
-				await ctx.send(language[162].format(clan,score,x,y))
+				await ctx.send(language[162].format(clan,score,x,z,y))
 		except Exception as e:
 			print(e)
 			# Catch missing message permission
@@ -289,8 +317,9 @@ class Clans(commands.Cog):
 				await ctx.send(language[153])
 			except:
 				try:
-					print("{0} id {1} name ".format(ctx.message.guild.id,ctx.message.guild.name))
+					await ctx.author.send(language[153])
 				except Exception as e:
+					print("{0} id {1} name ".format(ctx.message.guild.id,ctx.message.guild.name))
 					print(e)
 	#-------------------------------------------------------------------------------
 	#---------------------- Public Top 50 Clans (Non updating) ---------------------
@@ -528,5 +557,136 @@ class Clans(commands.Cog):
 				print(e)
 		except:
 			await ctx.send(language[147])
+	@commands.command(pass_context = True)
+	@commands.is_owner()
+	@commands.cooldown(1, 60, commands.BucketType.user)
+	async def ryo(self,ctx,clan):
+		LangCog = self.bot.get_cog("LangCog")
+		# Get/Set Language
+		user = ctx.message.author.id
+		language = LangCog.languagePicker(user)
+		plt.clf()
+		try:
+			clan.strip("[]")
+			clan = clan.replace('.', 'period5')
+			clan = clan.replace('$', 'dollar5')
+			clan = clan.replace('#', 'htag5')
+			clan = clan.replace('[', 'lbracket5')
+			clan = clan.replace('/', 'slash5')
+			clan = clan.replace(']', 'rbracket5')
+			clan = clan.replace('?', 'qmark5')
+			clan = clan.upper()
+			ref2 = db.reference('/{0}/clans/{1}'.format(780723109128962070,clan))
+			clanData = ref2.get()
+			if (clanData == None):
+				await ctx.send(language[156].format(clan))
+			else:
+				# $5 Patron, 6 months instead of 1 week
+				if(user == 746994669715587182 or user == 138752093308583936 or user == 681457461441593371):
+					timeDif = timedelta(720)
+				else:
+				# Set times to search back 3 weeks
+					timeDif = timedelta(21)
+				newTime = ctx.message.created_at
+				oldTime = newTime - timeDif
+				newTime = newTime + timedelta(1)
+				# Get all games from one week ago to present
+				gd1 = db.reference('gameData')
+				gd2 = db.reference('gameData2')
+				gd3 = db.reference('gameData3')
+				ref = db.reference('gameData4')
+				ref5 = db.reference('gameData5')
+				snapshot = ref.order_by_child('Time').start_at(str(oldTime)).end_at(str(newTime)).get()
+				snapshot5 = ref5.order_by_child('Time').start_at(str(oldTime)).end_at(str(newTime)).get()
+				snapshot = list(snapshot.items())
+				snapshot5 = list(snapshot5.items())
+				snapshot2 = gd1.order_by_child('Time').start_at(str(oldTime)).end_at(str(newTime)).get()
+				snapshot2 = list(snapshot2.items())
+				snapshot3 = gd2.order_by_child('Time').start_at(str(oldTime)).end_at(str(newTime)).get()
+				snapshot3 = list(snapshot3.items())
+				snapshot4 = gd3.order_by_child('Time').start_at(str(oldTime)).end_at(str(newTime)).get()
+				snapshot4 = list(snapshot4.items())
+				snapshot = snapshot + snapshot5 + snapshot2 + snapshot3 + snapshot4
+				games = list()
+				for i in range(len(snapshot)):
+					if(snapshot[i][1]['Clan'] == clan):
+						games.append(snapshot[i])
+				x = len(games)
+				try:
+					# Make plot for score vs time
+					plt.xlabel(language[157])
+					plt.ylabel(language[158])
+					plt.title(language[159])
+					times = list()
+					scores = list()
+					for i in range(len(games)):
+						temp = games[i][1]['Time'].replace('T',' ')
+						try:
+							times.append(datetime.fromisoformat(temp))
+						except:
+							times.append(datetime.strptime(temp,"%Y-%m-%d %H:%M:%S.%f"))
+							#times.append(datetime.strptime(temp,"%Y-%m-%d %H:%M:%S"))
+						scores.append(games[i][1]['Score'])
+					plt.plot(times,scores)
+					ax = plt.gca()
+					myFmt = mdates.DateFormatter('%m/%d')
+					ax.xaxis.set_major_formatter(myFmt)
+					ax.xaxis.set_major_locator(ticker.LinearLocator(9))
+					ax.xaxis.set_minor_locator(ticker.LinearLocator(10))
+					# Save plot for discord embed
+					data_stream = io.BytesIO()
+					plt.savefig(data_stream, format='png', bbox_inches="tight", dpi = 80)
+					data_stream.seek(0)
+					chart = discord.File(data_stream,filename="plot.png")
+					# Make and send embed
+					try:
+						plot = discord.Embed(title="{0}".format(clan), description=language[160], color=0x03fcc6)
+						plot.set_image(
+						   url="attachment://plot.png"
+						)
+						await ctx.send(embed=plot, file=chart)
+					except Exception as e:
+						print("t!clan error")
+						print(e)
+						print(clan)
+					plt.clf()
+				except:
+					await ctx.send(language[161])
+				#print(games[x - 1])
+				try:
+					y = clanData['wins']
+				except:
+					snapshot2 = ref.order_by_child('Clan').equal_to(clan).get()
+					snapshot3 = ref5.order_by_child('Clan').equal_to(clan).get()
+					snapshot2 = list(snapshot2.items())
+					snapshot3 = list(snapshot3.items())
+					snapshot2 = snapshot2 + snapshot3
+					y = len(snapshot2)
+					ref2.update({
+					'wins': y
+					})
+				
+				
+				clan = clan.replace('PERIOD5', '.')
+				clan = clan.replace('DOLLAR5', '$')
+				clan = clan.replace('HTAG5', '#')
+				clan = clan.replace('LBRACKET5', '[')
+				clan = clan.replace('SLASH5', '/')
+				clan = clan.replace('RBRACKET5', ']')
+				clan = clan.replace('QMARK5', '?')
+				
+				score = clanData['score']
+				await ctx.send(language[162].format(clan,score,x,y))
+		except Exception as e:
+			print(e)
+			# Catch missing message permission
+			try:
+				await ctx.send(language[153])
+			except:
+				try:
+					await ctx.author.send(language[153])
+				except Exception as e:
+					print("{0} id {1} name ".format(ctx.message.guild.id,ctx.message.guild.name))
+					print(e)
 async def setup(bot):
 	await bot.add_cog(Clans(bot))
