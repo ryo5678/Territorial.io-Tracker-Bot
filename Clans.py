@@ -7,6 +7,8 @@ from datetime import datetime, timedelta
 import numpy as np
 from matplotlib import pyplot as plt, ticker as ticker, dates as mdates
 from collections import defaultdict
+import functools
+import typing
 
 class Clans(commands.Cog):
 	def __init__(self, bot):
@@ -14,6 +16,80 @@ class Clans(commands.Cog):
 	#-------------------------------------------------------------------------------
 	#------------------------------ Compare Clans Command --------------------------
 	#-------------------------------------------------------------------------------
+	#async def compare(self,ctx,*,clans):
+	#	asyncio.create_task(self.compare2(ctx,clans))
+	def to_thread(func: typing.Callable) -> typing.Coroutine:
+		@functools.wraps(func)
+		async def wrapper(*args, **kwargs):
+			return await asyncio.to_thread(func, *args, **kwargs)
+		return wrapper
+
+
+	@to_thread
+	def compareMath(self,snapshot,clan,b):
+		pF = 0
+		pS = 0
+		mF = ''
+		mS = ''
+		gF = 0
+		gS = 0
+		games = list()
+		# Get all games from one week ago to present
+		for i in range(len(snapshot)):
+			if(snapshot[i][1]['Clan'] == clan):
+				games.append(snapshot[i])
+		count = len(games)
+		times = list()
+		scores = list()
+		maps = list()
+		players = list()
+		# Plot lines
+		for i in range(count):
+			temp2 = defaultdict(int)
+			temp = games[i][1]['Time'].replace('T',' ')
+			try:
+				times.append(datetime.fromisoformat(temp))
+			except:
+				times.append(datetime.strptime(temp,"%Y-%m-%d %H:%M:%S.%f"))
+				#times.append(datetime.strptime(temp,"%Y-%m-%d %H:%M:%S"))
+			scores.append(games[i][1]['Score'])
+			try:
+				maps.append(games[i][1]['Map'])
+			except:
+				print(games[i][1]['Map'])
+			try:
+				players.append(int(games[i][1]['Players']))
+			except:
+				print(games[i][1]['Players'])
+		if(b == 1):
+			#print(players)
+			if(players == []):
+				pF = 0
+			else:
+				pF = int(statistics.mean(players))
+			if(maps == []):
+				mF = "N/A"
+			else:
+				for map in maps:
+					for name in map.split():
+						temp2[name] += 1
+				mF = max(temp2, key=temp2.get)
+			gF = count
+		elif(b == 2):
+			if(players == []):
+				pS = 0
+			else:
+				pS = int(statistics.mean(players))
+			if(maps == []):
+				mS = "N/A"
+			else:
+				for map in maps:
+					for name in map.split():
+						temp2[name] += 1
+				mS = max(temp2, key=temp2.get)
+			gS = count
+		return times, scores, pF, mF, gF, pS, mS, gS
+	
 	@commands.command(pass_context = True)
 	@commands.cooldown(1, 600, commands.BucketType.user)
 	async def compare(self,ctx,*,clans):
@@ -21,8 +97,9 @@ class Clans(commands.Cog):
 		# Get/Set Language
 		user = ctx.message.author.id
 		language = LangCog.languagePicker(user)
-		plt.clf()
+		#plt.clf()
 		await ctx.send(language[3])
+		
 		clanList = clans.split()
 		if len(clanList) < 2:
 			await ctx.send("Minimum clans is 2, please try again.")
@@ -43,22 +120,26 @@ class Clans(commands.Cog):
 		oldTime = newTime - timeDif
 		newTime = newTime + timedelta(1)
 		# Make plot for score vs time
-		plt.xlabel(language[157])
-		plt.ylabel(language[158])
-		plt.title(language[169])
-		ax = plt.gca()
+		fig1, ax1 = plt.subplots()
+		print(ax1.lines)
+		if ax1.get_xlabel == language[157]:
+			print("Testing")
+			fig2, ax2 = plt.subplots()
+			figure = fig2
+			axe = ax2
+		else:
+			figure = fig1
+			axe = ax1
+		axe.set_title(language[169])
+		axe.set_xlabel(language[157])
+		axe.set_ylabel(language[158])
+		#figure.title(language[169])
 		myFmt = mdates.DateFormatter('%m/%d')
-		ax.xaxis.set_major_formatter(myFmt)
-		ax.xaxis.set_major_locator(ticker.LinearLocator(9))
-		ax.xaxis.set_minor_locator(ticker.LinearLocator(10))
+		axe.xaxis.set_major_formatter(myFmt)
+		axe.xaxis.set_major_locator(ticker.LinearLocator(9))
+		axe.xaxis.set_minor_locator(ticker.LinearLocator(10))
 		# Loop through each clan name given
 		b = 1
-		pF = 0
-		pS = 0
-		mF = ''
-		mS = ''
-		gF = 0
-		gS = 0
 		ref = db.reference('gameData4')
 		ref5 = db.reference('gameData5')
 		ref6 = db.reference('gameData6')
@@ -87,72 +168,23 @@ class Clans(commands.Cog):
 					ctx.command.reset_cooldown(ctx)
 					return
 				else:
-					games = list()
-					# Get all games from one week ago to present
-					for i in range(len(snapshot)):
-						if(snapshot[i][1]['Clan'] == clan):
-							games.append(snapshot[i])
-					count = len(games)
-					times = list()
-					scores = list()
-					maps = list()
-					players = list()
-					# Plot lines
-					for i in range(count):
-						temp2 = defaultdict(int)
-						temp = games[i][1]['Time'].replace('T',' ')
-						try:
-							times.append(datetime.fromisoformat(temp))
-						except:
-							times.append(datetime.strptime(temp,"%Y-%m-%d %H:%M:%S.%f"))
-							#times.append(datetime.strptime(temp,"%Y-%m-%d %H:%M:%S"))
-						scores.append(games[i][1]['Score'])
-						try:
-							maps.append(games[i][1]['Map'])
-						except:
-							print(games[i][1]['Map'])
-						try:
-							players.append(int(games[i][1]['Players']))
-						except:
-							print(games[i][1]['Players'])
-					if(b == 1):
-						if(players == []):
-							pF = 0
-						else:
-							pF = int(statistics.mean(players))
-						if(maps == []):
-							mF = "N/A"
-						else:
-							for map in maps:
-								for name in map.split():
-									temp2[name] += 1
-							mF = max(temp2, key=temp2.get)
-						gF = count
-					elif(b == 2):
-						if(players == []):
-							pS = 0
-						else:
-							pS = int(statistics.mean(players))
-						if(maps == []):
-							mS = "N/A"
-						else:
-							for map in maps:
-								for name in map.split():
-									temp2[name] += 1
-							mS = max(temp2, key=temp2.get)
-						gS = count
+					stuff = await self.compareMath(snapshot,clan,b)
+					if b == 1:
+						pF = stuff[2]
+						mF = stuff[3]
+						gF = stuff[4]
 					b += 1
-					plt.plot(times,scores,label=clan)
+					axe.plot(stuff[0],stuff[1],label=clan)
 			except Exception as e:
 				print(e)
 				await ctx.send(language[153])
 				ctx.command.reset_cooldown(ctx)
 				return
 		try:
-			plt.legend(loc="upper right")
+			axe.legend(loc="upper right")
 			# Save plot for discord embed
 			data_stream = io.BytesIO()
-			plt.savefig(data_stream, format='png', bbox_inches="tight", dpi = 80)
+			figure.savefig(data_stream, format='png', bbox_inches="tight", dpi = 80)
 			data_stream.seek(0)
 			chart = discord.File(data_stream,filename="plot.png")
 			# Make and send embed
@@ -163,13 +195,13 @@ class Clans(commands.Cog):
 			await ctx.send(embed=plot, file=chart)
 			try:
 				await ctx.send(language[4].format(clanList[0],pF,mF,gF))
-				await ctx.send(language[4].format(clanList[1],pS,mS,gS))
+				await ctx.send(language[4].format(clanList[1],stuff[5],stuff[6],stuff[7]))
 			except Exception as e:
 				print("t!compare")
 				print(e)
 				print(ctx.message.guild.name)
 				print(ctx.message.guild.id)
-			plt.clf()
+			plt.close(figure)
 		except Exception as e:
 				print(e)
 				await ctx.send(language[153])
@@ -561,6 +593,7 @@ class Clans(commands.Cog):
 	@commands.is_owner()
 	@commands.cooldown(1, 60, commands.BucketType.user)
 	async def ryo(self,ctx,clan):
+		#thread = Thread(target=task, args=(arg1, arg2))
 		LangCog = self.bot.get_cog("LangCog")
 		# Get/Set Language
 		user = ctx.message.author.id
@@ -688,5 +721,10 @@ class Clans(commands.Cog):
 				except Exception as e:
 					print("{0} id {1} name ".format(ctx.message.guild.id,ctx.message.guild.name))
 					print(e)
+	#@commands.command(pass_context = True)
+	#@commands.is_owner()
+	#async def ryo2(self,ctx,clan):
+	#	asyncio.create_task(self.ryo(ctx,clan))
+		
 async def setup(bot):
 	await bot.add_cog(Clans(bot))
