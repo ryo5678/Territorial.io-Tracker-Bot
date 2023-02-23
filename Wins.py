@@ -1,11 +1,12 @@
-import discord, random, math, asyncio, firebase_admin, requests, io, re, datetime, os, cv2, discord.utils, subprocess, statistics
+import discord, random, math, asyncio, firebase_admin, requests, io, re, datetime, os, cv2, discord.utils, subprocess, statistics, typing, functools
 from discord.ext import commands, tasks
 from discord.ext.commands import bot
 from firebase_admin import db
-import datetime
+from datetime import datetime, timedelta, timezone
 from PIL import Image, ImageOps
 from pytesseract import pytesseract
 import numpy as np
+from matplotlib import pyplot as plt, ticker as ticker, dates as mdates
 path_to_tesseract = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 # List of removeWins admins
 winAdmins = ((138752093308583936,"ELITE"),(524835935276498946,"ELITE"),(746381696139788348,"ISLAM"),(735145539494215760,"ISLAM"),(514953130178248707,"RL"))
@@ -13,6 +14,62 @@ winAdmins = ((138752093308583936,"ELITE"),(524835935276498946,"ELITE"),(74638169
 class Wins(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
+		
+		
+		
+	# NEW COMMANDS FOR TESTING #
+	def to_thread(func: typing.Callable) -> typing.Coroutine:
+		@functools.wraps(func)
+		async def wrapper(*args, **kwargs):
+			return await asyncio.to_thread(func, *args, **kwargs)
+		return wrapper
+
+
+	@to_thread
+	def testStats(self,message):
+		# Take message time
+		old = message.created_at
+		# Get now time
+		new = datetime.now(timezone.utc)
+		# Compare if 24 hours have passed
+		diff = new - old
+		#print((diff.days*24) + (diff.seconds/3600))
+		# If so, check main channel for new post
+		if (diff.seconds/3600) > 1:
+			# If new post, send it to community channel
+			return True
+		else:
+			# If Not New, end and wait for next loop
+			return False
+	@to_thread
+	def testStats2(self,message):
+		# Take message time
+		old = message.created_at
+		# Get now time
+		new = datetime.now(timezone.utc)
+		# Compare if 24 hours have passed
+		diff = new - old
+		#print((diff.days*24) + (diff.seconds/3600))
+		# If so, check main channel for new post
+		if ((diff.days*24) + (diff.seconds/3600)) > 23:
+			# If new post, send it to community channel
+			return True
+		else:
+			# If Not New, end and wait for next loop
+			return False
+	@commands.command(pass_context = True)
+	@commands.is_owner()
+	async def ryoTest(self,ctx):
+		channel = self.bot.get_channel(1048351975751819305)
+		try:
+			message = await channel.fetch_message(
+					channel.last_message_id)
+			result = await self.testStats(message)
+			
+		except Exception as e:
+			# if message != none crashes bot if try/catch failed on message = await
+			print("An erorr occured in RyoTest")
+			print(e)
 	#-------------------------------------------------------------------------------
 	#------------------------------ Best Players Log Tracking ----------------------
 	#-------------------------------------------------------------------------------	
@@ -41,86 +98,188 @@ class Wins(commands.Cog):
 			print("An erorr occured in best player log, previous message null")
 			print(e)
 	#-------------------------------------------------------------------------------
-	#------------------------------ Top Players Tracking ---------------------------
+	#----------------------- Top Players  AND Clans Tracking -----------------------
 	#-------------------------------------------------------------------------------	
 	@tasks.loop(seconds=3600.0,count=None,reconnect=True)
 	async def topPlayer(self):
+		# Set channels
 		channel = self.bot.get_channel(918557607298470009)
-		try:
-			message = await channel.fetch_message(
-					channel.last_message_id)
+		channel2 = self.bot.get_channel(1048351975751819305)
+		channel3 = self.bot.get_channel(917733087859834890)
+		channel4 = self.bot.get_channel(1048352009469820928)
+		# Get messages from new community
+		message3 = await channel2.fetch_message(
+					channel2.last_message_id)
+		message4 = await channel4.fetch_message(
+					channel4.last_message_id)
 					
-			mRef = db.reference('/780723109128962070/lastMessageTopPlayer')
-			message2 = int(mRef.get())
-			
-			if message2 != message.id:
-				message2 = message
-				text = message.content
-				channel2 = self.bot.get_channel(1048351975751819305)
-				await channel2.send(text)
+		result = await self.testStats(message3)
+		if result == True:
+			# Best Players
+			try:
+				message = await channel.fetch_message(
+						channel.last_message_id)
+						
+				mRef = db.reference('/780723109128962070/lastMessageTopPlayer')
+				message2 = int(mRef.get())
 				
-				mRef = db.reference('/780723109128962070')
-				mRef.update({
-				'lastMessageTopPlayer': str(message.id)
-				})
-		except Exception as e:
-			# if message != none crashes bot if try/catch failed on message = await
-			print("An erorr occured in top player, previous message null")
-			print(e)
-	#-------------------------------------------------------------------------------
-	#------------------------------ Top Clans Tracking -----------------------------
-	#-------------------------------------------------------------------------------	
-	@tasks.loop(seconds=3600.0,count=None,reconnect=True)
-	async def bestClan(self):
-		channel = self.bot.get_channel(917733087859834890)
-		try:
-			message = await channel.fetch_message(
-					channel.last_message_id)
+				if message2 != message.id:
+					message2 = message
+					text = message.content
+					await channel2.send(text)
 					
-			mRef = db.reference('/780723109128962070/lastMessageBestClan')
-			message2 = int(mRef.get())
-			
-			if message2 != message.id:
-				message2 = message
-				text = message.content
-				channel2 = self.bot.get_channel(1048352009469820928)
-				await channel2.send(text)
+					mRef = db.reference('/780723109128962070')
+					mRef.update({
+					'lastMessageTopPlayer': str(message.id)
+					})
+			except Exception as e:
+				# if message != none crashes bot if try/catch failed on message = await
+				print("An erorr occured in top player, previous message null")
+				print(e)
+		result2 = await self.testStats(message4)
+		if result2 == True:
+			# Best clans
+			try:
+				message = await channel3.fetch_message(
+						channel3.last_message_id)
+						
+				mRef = db.reference('/780723109128962070/lastMessageBestClan')
+				message2 = int(mRef.get())
 				
-				mRef = db.reference('/780723109128962070')
-				mRef.update({
-				'lastMessageBestClan': str(message.id)
-				})
-		except Exception as e:
-			# if message != none crashes bot if try/catch failed on message = await
-			print("An erorr occured in best clans, previous message null")
-			print(e)
+				if message2 != message.id:
+					message2 = message
+					text = message.content
+					await channel4.send(text)
+					
+					mRef = db.reference('/780723109128962070')
+					mRef.update({
+					'lastMessageBestClan': str(message.id)
+					})
+			except Exception as e:
+				# if message != none crashes bot if try/catch failed on message = await
+				print("An erorr occured in best clans, previous message null")
+				print(e)
 	#-------------------------------------------------------------------------------
 	#------------------------------ User Count Tracking ----------------------------
-	#-------------------------------------------------------------------------------	
+	#-------------------------------------------------------------------------------
+	@to_thread
+	async def userStats(self,channel,message):
+		try:
+			plt.clf()
+			# Set reference
+			ref = db.reference('/userCount')
+			
+			# Check time of last message in user stat channel
+			#message = await channel.fetch_message(
+			#		channel.last_message_id)
+			newTime = message.created_at
+			
+			# Set time settings
+			timeDif = timedelta(1)
+			oldTime = newTime - timeDif
+			newTime = newTime + timedelta(1)
+		
+			# Update database, include timestamp
+			now = datetime.now().isoformat()
+			
+			
+			# Get data
+			snapshot = ref.order_by_child('time').start_at(str(oldTime)).end_at(str(newTime)).get()
+			snapshot = list(snapshot.items())
+			
+			# Plot settings for score vs time (daily)
+			plt.rcParams["figure.figsize"] = (20,5)
+			plt.xlabel("Time")
+			plt.ylabel("User Count")
+			plt.title("Daily change in users")
+			times = list()
+			usercount = list()
+			
+			# Fill plot lists
+			for i in range(len(snapshot)):
+				usercount.append(int(snapshot[i][1]['count']))
+				try:
+					times.append(datetime.fromisoformat(snapshot[i][1]['time']))
+				except:
+					times.append(datetime.strptime(snapshot[i][1]['time']),"%H:%M")
+			
+			# Finish making plot
+			ax = plt.gca()
+			myFmt = mdates.DateFormatter('%H:%M')
+			ax.xaxis.set_major_formatter(myFmt)
+			#ax.xaxis.set_major_locator(ticker.LinearLocator(12))
+			plt.plot(times,usercount)
+			
+			# Save plot for discord embed
+			data_stream = io.BytesIO()
+			plt.savefig(data_stream, format='png', bbox_inches="tight", dpi = 80)
+			data_stream.seek(0)
+			chart = discord.File(data_stream,filename="plot.png")
+			
+			# Send report to channel
+			avg = round(statistics.mean(usercount))
+			plot = discord.Embed(title="User Changes In The Past Day", description='{0} average players'.format(avg), color=0x03fcc6)
+			plot.set_image(
+			   url="attachment://plot.png"
+			)
+			plt.clf()
+			plt.rcParams["figure.figsize"] = plt.rcParamsDefault["figure.figsize"]
+			return plot, chart
+		except Exception as e:
+			# if message != none crashes bot if try/catch failed on message = await
+			print("An erorr occured in user stats")
+			print(e)
 	@tasks.loop(seconds=3600.0,count=None,reconnect=True)
 	async def userCount(self):
 		channel = self.bot.get_channel(798537217106116608)
 		try:
 			message = await channel.fetch_message(
 					channel.last_message_id)
-					
+			#------------------------------------- 2340 Players
 			mRef = db.reference('/780723109128962070/lastMessageUserCount')
 			message2 = int(mRef.get())
 			
 			if message2 != message.id:
 				message2 = message
+				#  Outdated, being replaced
 				text = message.content
-				channel2 = self.bot.get_channel(1048355200601178243)
-				await channel2.send(text)
-				
+				#if text == None:
 				mRef = db.reference('/780723109128962070')
 				mRef.update({
 				'lastMessageUserCount': str(message.id)
 				})
+				print("userCount working")
+				now = datetime.now().isoformat()
+				try:
+					# Set reference and strip all but numbers from text
+					ref = db.reference('/userCount')
+					text = re.sub("[^0-9]", "", text)
+					
+					# Update database, include timestamp
+					ref.push({
+						'count': text,
+						'time': now
+					})
+				except Exception as e:
+					print(e)
+					print(now)
+					print("issue in user count")
+					print(message.content)
+				
+				
+				channel2 = self.bot.get_channel(1048355200601178243)
+				message3 = await channel2.fetch_message(
+					channel2.last_message_id)
+					
+				result = await self.testStats2(message3)
+				if result == True:
+					data = await self.userStats(channel2,message3)
+					await channel.send(embed=data[0], file=data[1])
 		except Exception as e:
 			# if message != none crashes bot if try/catch failed on message = await
 			print("An erorr occured in user count, previous message null")
 			print(e)
+	
 	#-------------------------------------------------------------------------------
 	#------------------------------ Remove Wins Self Version -----------------------
 	#-------------------------------------------------------------------------------	
