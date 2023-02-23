@@ -1,3 +1,8 @@
+NOT CURRENTLY IN USE
+
+
+
+
 import discord, firebase_admin, discord.utils
 from discord.ext import commands
 from discord.ext.commands import bot
