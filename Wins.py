@@ -35,7 +35,7 @@ class Wins(commands.Cog):
 		#print(f"TestStats: old time {old} new time {new}")
 		#print(diff.seconds/3600)
 		# If so, check main channel for new post
-		if (diff.days) > 1:	
+		if (diff.days) >= 1:
 			# If new post, send it to community channel
 			return True
 		else:
@@ -71,7 +71,9 @@ class Wins(commands.Cog):
 				message2 = message
 				text = message.content
 				channel2 = self.bot.get_channel(1048352090717696020)
+				channel3 = self.bot.get_channel(1079823196943028256)
 				await channel2.send(text)
+				await channel3.send(text)
 				
 				mRef = db.reference('/780723109128962070')
 				mRef.update({
@@ -91,6 +93,8 @@ class Wins(commands.Cog):
 			channel = self.bot.get_channel(918557607298470009)
 			channel2 = self.bot.get_channel(1048351975751819305)
 			channel3 = self.bot.get_channel(917733087859834890)
+			# 1v1 Server
+			channel4 = self.bot.get_channel(1079823196943028256)
 			# Get messages from new community
 			message3 = await channel2.fetch_message(
 						channel2.last_message_id)
@@ -108,8 +112,9 @@ class Wins(commands.Cog):
 					if message2 != message.id:
 						message2 = message
 						text = message.content
-						await channel2.send("Top 10 Players")
-						await channel2.send(text)
+						await channel2.send("**Top 20 Players**")
+						await channel2.send(text + "\n")
+						await channel4.send(text)
 						
 						mRef = db.reference('/780723109128962070')
 						mRef.update({
@@ -131,7 +136,7 @@ class Wins(commands.Cog):
 					if message2 != message.id:
 						message2 = message
 						text = message.content
-						await channel2.send("Top 10 Clans")
+						await channel2.send("**Top 10 Clans**")
 						await channel2.send(text)
 						
 						mRef = db.reference('/780723109128962070')
