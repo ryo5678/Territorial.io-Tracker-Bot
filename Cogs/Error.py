@@ -6,27 +6,10 @@ import datetime
 from datetime import datetime, timedelta
 from discord.ext.commands import CommandNotFound, MissingPermissions, MessageNotFound, NotOwner, BotMissingPermissions, CommandOnCooldown, MissingRequiredArgument
 
-#Russian
-textfile = open('ru-errors.txt', 'r', encoding="utf-8")
-russian = textfile.read().splitlines()
-textfile.close()
 #English
 textfile = open('en-errors.txt', 'r')
 english = textfile.read().splitlines()
 textfile.close()
-#French
-textfile = open('fr-errors.txt', 'r', encoding="utf-8")
-french = textfile.read().splitlines()
-textfile.close()
-#Turkish
-textfile = open('tr-errors.txt', 'r', encoding="utf8")
-turkish = textfile.read().splitlines()
-textfile.close()
-#German
-textfile = open('de-errors.txt', 'r', encoding="utf8")
-german = textfile.read().splitlines()
-textfile.close()
-
 
 class Error(commands.Cog):
 	def __init__(self, bot):
@@ -34,25 +17,10 @@ class Error(commands.Cog):
 	@commands.Cog.listener()
 	async def on_command_error(self, ctx, error):
 		error = getattr(error, 'original', error)
-		#language = english
 		# Get user ID
 		user = ctx.author.id
 		# Set reference
-		ref = db.reference('/users/{0}/lang'.format(user))
-		if ref.get() == "french":
-			language = french
-			s = "D\u00e8"
-			a = "\u00e8"
-		if ref.get() == "english":
-			language = english
-		if ref.get() == "russian":
-			language = russian
-		if ref.get() == "turkish":
-			language = turkish
-		if ref.get() == "german":
-			language = german
-		if ref.get() == None:
-			language = english
+		language = english
 		# Catch CommandNotFound Error
 		if isinstance(error, discord.ext.commands.CommandNotFound):
 			try:
