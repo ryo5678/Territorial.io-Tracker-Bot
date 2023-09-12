@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from discord.ext.commands import CommandNotFound, MissingPermissions, MessageNotFound, NotOwner, BotMissingPermissions, CommandOnCooldown, MissingRequiredArgument
 
 #English
-textfile = open('en-errors.txt', 'r')
+textfile = open('/Strings/en-errors.txt', 'r')
 english = textfile.read().splitlines()
 textfile.close()
 
@@ -19,7 +19,7 @@ class Error(commands.Cog):
 		error = getattr(error, 'original', error)
 		# Get user ID
 		user = ctx.author.id
-		# Set reference
+		# Set language
 		language = english
 		# Catch CommandNotFound Error
 		if isinstance(error, discord.ext.commands.CommandNotFound):

@@ -10,6 +10,11 @@ from matplotlib import pyplot as plt, ticker as ticker, dates as mdates
 from datetime import datetime, timedelta, timezone
 from discord.utils import get
 
+#English
+textfile = open('/Strings/en-errors.txt', 'r')
+english = textfile.read().splitlines()
+textfile.close()
+
 class Profile(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
@@ -24,9 +29,8 @@ class Profile(commands.Cog):
 	#------------------------------ PROFILE COMMAND --------------------------------
 	#-------------------------------------------------------------------------------
 	def profileDisplay(self,ctx,user,user2,username):
-		# Get/Set Language
-		LangCog = self.bot.get_cog("LangCog")
-		language = LangCog.languagePicker(user2)
+		# Set language
+		language = english
 		# Get user ID
 		ref = db.reference('/users/{0}'.format(user))
 		info = ref.get()

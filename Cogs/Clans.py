@@ -12,6 +12,11 @@ from collections import defaultdict
 import functools
 import typing
 
+#English
+textfile = open('/Strings/en-errors.txt', 'r')
+english = textfile.read().splitlines()
+textfile.close()
+
 class Clans(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
@@ -138,10 +143,10 @@ class Clans(commands.Cog):
 	@commands.command(pass_context = True)
 	@commands.cooldown(1, 600, commands.BucketType.user)
 	async def compare(self,ctx,*,clans):
-		LangCog = self.bot.get_cog("LangCog")
-		# Get/Set Language
+		# Set language
+		language = english
+		# Set user
 		user = ctx.message.author.id
-		language = LangCog.languagePicker(user)
 		#plt.clf()
 		await ctx.send(language[3])
 		
@@ -322,10 +327,10 @@ class Clans(commands.Cog):
 	@commands.command(pass_context = True)
 	@commands.cooldown(1, 60, commands.BucketType.user)
 	async def clan(self,ctx,clan,duration = None):
-		LangCog = self.bot.get_cog("LangCog")
-		# Get/Set Language
+		# Set language
+		language = english
+		# Set user
 		user = ctx.message.author.id
-		language = LangCog.languagePicker(user)
 		plt.clf()
 		# Check for valid duration
 		if(duration is not None):
@@ -487,10 +492,10 @@ class Clans(commands.Cog):
 	@commands.command(pass_context = True)
 	@commands.cooldown(1, 600, commands.BucketType.user)
 	async def top50(self,ctx):
-		LangCog = self.bot.get_cog("LangCog")
-		# Get/Set Language
+		# Set language
+		language = english
+		# Set user
 		user = ctx.message.author.id
-		language = LangCog.languagePicker(user)
 		# Get scores
 		ref = db.reference('/{0}/clans'.format(780723109128962070))
 		clanList = ref.order_by_child('score').limit_to_last(50).get()
@@ -523,10 +528,10 @@ class Clans(commands.Cog):
 	@commands.command(pass_context = True)
 	@commands.cooldown(1, 600, commands.BucketType.user)
 	async def top25(self,ctx):
-		LangCog = self.bot.get_cog("LangCog")
-		# Get/Set Language
+		# Set language
+		language = english
+		# Set user
 		user = ctx.message.author.id
-		language = LangCog.languagePicker(user)
 		# Get scores
 		ref = db.reference('/{0}/clans'.format(780723109128962070))
 		clanList = ref.order_by_child('score').limit_to_last(25).get()
@@ -543,10 +548,8 @@ class Clans(commands.Cog):
 	@commands.command(pass_context = True)
 	@commands.cooldown(1, 600, commands.BucketType.user)
 	async def top(self,ctx):
-		LangCog = self.bot.get_cog("LangCog")
-		# Get/Set Language
-		user = ctx.message.author.id
-		language = LangCog.languagePicker(user)
+		# Set language
+		language = english
 		await ctx.send(language[154])
 	#-------------------------------------------------------------------------------
 	#-------------------------------  History Grab  --------------------------------
@@ -623,10 +626,10 @@ class Clans(commands.Cog):
 	@commands.command(pass_context = True)
 	@commands.cooldown(1, 600, commands.BucketType.user)
 	async def top100(self,ctx):
-		LangCog = self.bot.get_cog("LangCog")
-		# Get/Set Language
+		# Set language
+		language = english
+		# Set user
 		user = ctx.message.author.id
-		language = LangCog.languagePicker(user)
 		# Get scores
 		ref = db.reference('/{0}/clans'.format(780723109128962070))
 		clanList = ref.order_by_child('score').limit_to_last(100).get()
@@ -675,10 +678,10 @@ class Clans(commands.Cog):
 	@commands.command(pass_context = True)
 	@commands.cooldown(1, 3600, commands.BucketType.user)
 	async def clanboard(self,ctx,clan):
-		LangCog = self.bot.get_cog("LangCog")
-		# Get/Set Language
+		# Set language
+		language = english
+		# Set user
 		user = ctx.message.author.id
-		language = LangCog.languagePicker(user)
 		try:
 			clan.strip("[]")
 			clan = clan.replace('.', 'period5')
@@ -900,10 +903,10 @@ class Clans(commands.Cog):
 	@commands.command(pass_context = True)
 	@commands.is_owner()
 	async def compareRyo(self,ctx,*,clans):
-		LangCog = self.bot.get_cog("LangCog")
-		# Get/Set Language
+		# Set language
+		language = english
+		# Set user
 		user = ctx.message.author.id
-		language = LangCog.languagePicker(user)
 		#plt.clf()
 		await ctx.send(language[3])
 		

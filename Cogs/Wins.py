@@ -11,6 +11,11 @@ path_to_tesseract = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 # List of removeWins admins
 winAdmins = ((138752093308583936,"ELITE"),(524835935276498946,"ELITE"),(746381696139788348,"ISLAM"),(735145539494215760,"ISLAM"),(514953130178248707,"RL"))
 
+#English
+textfile = open('/Strings/en-errors.txt', 'r')
+english = textfile.read().splitlines()
+textfile.close()
+
 class Wins(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
@@ -313,10 +318,10 @@ class Wins(commands.Cog):
 	@commands.cooldown(1, 30, commands.BucketType.user)
 	async def remove(self,ctx,wins,points = None):
 		try:
-			LangCog = self.bot.get_cog("LangCog")
-			# Get/Set Language
+			# Set language
+			language = english
+			# Set user
 			user = ctx.message.author.id
-			language = LangCog.languagePicker(user)
 			# Check if integer was provided for wins
 			try:
 				wins = int(wins)
@@ -375,11 +380,10 @@ class Wins(commands.Cog):
 	@commands.command(pass_context = True)
 	@commands.cooldown(1, 30, commands.BucketType.user)
 	async def removeWins(self,ctx,name: discord.Member,wins):
-		LangCog = self.bot.get_cog("LangCog")
-		# Get/Set Language
+		# Set language
+		language = english
+		# Set user
 		user = name.id
-		user2 = ctx.message.author.id
-		language = LangCog.languagePicker(user2)
 		# Assign/Retrieve command caller ID
 		caller = ctx.author.id
 		# Check if caller is approved user
@@ -427,8 +431,8 @@ class Wins(commands.Cog):
 	@commands.command(pass_context = True)
 	@commands.cooldown(1, 60, commands.BucketType.user)
 	async def win(self,ctx):
-		# Get language cog
-		LangCog = self.bot.get_cog("LangCog")
+		# Set language
+		language = english
 		# Get image channel list
 		#ref = db.reference('/imageChannels')
 		#info = ref.get()
@@ -472,9 +476,6 @@ class Wins(commands.Cog):
 				})
 				# Send missing clan warning and end command (Default is English, this does not need to be in string file)
 				return await ctx.send("Tracker profile generated. Please set a clan before trying to track clan wins. t!setclan NAME")
-			else:
-				# Get/Set Language
-				language = LangCog.languagePicker(user)
 			# Check privacy opt in/out
 			opt = db.reference('/users/{0}/opt'.format(user))
 			if (opt.get() == True):

@@ -1,25 +1,10 @@
-import discord, random, math, asyncio, firebase_admin, requests, io, re, datetime, os, cv2, discord.utils, subprocess, statistics
+import discord, asyncio, firebase_admin, requests, io, re, discord.utils
 from discord.ext import commands
 from discord.ext.commands import bot, ExtensionAlreadyLoaded
 
 class Switch(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
-	#-------------------------------------------------------------------------------
-	#----------------------------- Load/Unload Lang Cog ----------------------------
-	#-------------------------------------------------------------------------------
-	@commands.command(pass_context = True)
-	@commands.is_owner()
-	async def langSwitch(self,ctx):
-		try:
-			global LangCog
-			await self.bot.load_extension("LangCog")
-			LangCog = self.bot.get_cog("LangCog")
-			await ctx.send("Language is online")
-			return LangCog
-		except commands.ExtensionAlreadyLoaded:
-			await self.bot.unload_extension("LangCog")
-			await ctx.send("Language is offline")	
 	#-------------------------------------------------------------------------------
 	#----------------------------- Load/Unload Help Cog ----------------------------
 	#-------------------------------------------------------------------------------
@@ -74,19 +59,30 @@ class Switch(commands.Cog):
 			await self.bot.unload_extension("Wins")
 			await ctx.send("Wins is offline")
 	#-------------------------------------------------------------------------------
-	#----------------------------- Load/Unload Poll Cog ----------------------------
+	#----------------------------- Load/Unload Admin Cog ----------------------------
 	#-------------------------------------------------------------------------------
 	@commands.command(pass_context = True)
 	@commands.is_owner()
-	async def pollSwitch(self,ctx):
+	async def adminSwitch(self,ctx):
 		try:
-			await self.bot.load_extension("Poll")
-			#PollCog = self.bot.get_cog("Poll")
-			#await PollCog.pollStart()
-			await ctx.send("Poll is online")
+			await self.bot.load_extension("Admin")
+			await ctx.send("Admin is online")
 		except commands.ExtensionAlreadyLoaded:
-			await self.bot.unload_extension("Poll")
-			await ctx.send("Poll is offline")
+			await self.bot.unload_extension("Admin")
+			await ctx.send("Admin is offline")
+	#-------------------------------------------------------------------------------
+	#----------------------------- Load/Unload Custom Cog ----------------------------
+	#-------------------------------------------------------------------------------
+	@commands.command(pass_context = True)
+	@commands.is_owner()
+	async def customSwitch(self,ctx):
+		try:
+			await self.bot.load_extension("Custom")
+			await ctx.send("Custom is online")
+		except commands.ExtensionAlreadyLoaded:
+			await self.bot.unload_extension("Custom")
+			await ctx.send("Custom is offline")
+
 async def setup(bot):
 	await bot.add_cog(Switch(bot))
 	

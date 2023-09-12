@@ -2,6 +2,11 @@ import discord, random, math, asyncio, firebase_admin, requests, io, re, datetim
 from discord.ext import commands
 from discord.ext.commands import bot
 
+#English
+textfile = open('/Strings/en-errors.txt', 'r')
+english = textfile.read().splitlines()
+textfile.close()
+
 class Help(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
@@ -12,10 +17,8 @@ class Help(commands.Cog):
 	@commands.has_permissions(administrator=True)
 	@commands.cooldown(1, 600, commands.BucketType.user)
 	async def ahelp(self,ctx):
-		# Get/Set Language
-		LangCog = self.bot.get_cog("LangCog")
-		user = ctx.message.author.id
-		language = LangCog.languagePicker(user)
+		# Set language
+		language = english
 		# Embed
 		sheet = discord.Embed(title=language[5], description=language[6], color=0x0000FF)
 		sheet.add_field(name=language[7], value=language[8] + '\n' + language[9], inline=False)
@@ -37,10 +40,8 @@ class Help(commands.Cog):
 	@commands.command(pass_context = True)
 	@commands.cooldown(1, 600, commands.BucketType.user)
 	async def help(self,ctx):
-		# Get/Set Language
-		LangCog = self.bot.get_cog("LangCog")
-		user = ctx.message.author.id
-		language = LangCog.languagePicker(user)
+		# Set language
+		language = english
 		# Embed
 		sheet2 = discord.Embed(title=language[47], description=language[48], color=0x0000FF)
 		# Policy
@@ -65,10 +66,8 @@ class Help(commands.Cog):
 	@commands.has_permissions(administrator=True)
 	@commands.cooldown(1, 1800, commands.BucketType.user)
 	async def setup(self,ctx):
-		# Get/Set Language
-		LangCog = self.bot.get_cog("LangCog")
-		user = ctx.message.author.id
-		language = LangCog.languagePicker(user)
+		# Set language
+		language = english
 		# Send text wall 
 		await ctx.send(language[79] + '\n' + language[80] + '\n' + language[81])
 		await asyncio.sleep(5)
@@ -92,6 +91,7 @@ class Help(commands.Cog):
 	@commands.cooldown(1, 300, commands.BucketType.user)
 	async def status(self,ctx):
 		stat = discord.Embed(title="Bot Status",description="What should be working.", color=0x0000FF)
+		# Error
 		try:
 			await self.bot.load_extension("Error")
 		except Exception as e:
@@ -99,13 +99,7 @@ class Help(commands.Cog):
 				stat.add_field(name="Error Handling", value="Online", inline=False)
 			else:
 				stat.add_field(name="Error Handling", value="Offline", inline=False)
-		try:
-			await self.bot.load_extension("LangCog")
-		except Exception as e:
-			if isinstance(e,discord.ext.commands.ExtensionAlreadyLoaded):
-				stat.add_field(name="Language Translation (Effects most commands)", value="Online", inline=False)
-			else:
-				stat.add_field(name="Language Translation (Effects most commands)", value="Offline", inline=False)
+		# Clans
 		try:
 			await self.bot.load_extension("Clans")
 		except Exception as e:
@@ -113,6 +107,7 @@ class Help(commands.Cog):
 				stat.add_field(name="Clans commands", value="Online", inline=False)
 			else:
 				stat.add_field(name="Clans commands", value="Offline", inline=False)
+		# Wins
 		try:
 			await self.bot.load_extension("Wins")
 		except Exception as e:
@@ -120,13 +115,30 @@ class Help(commands.Cog):
 				stat.add_field(name="Win Tracking", value="Online", inline=False)
 			else:
 				stat.add_field(name="Win Tracking", value="Offline", inline=False)
+		# Admin
 		try:
-			await self.bot.load_extension("Poll")
+			await self.bot.load_extension("Admin")
 		except Exception as e:
 			if isinstance(e,discord.ext.commands.ExtensionAlreadyLoaded):
-				stat.add_field(name="Poll System", value="Online", inline=False)
+				stat.add_field(name="Admin commands", value="Online", inline=False)
 			else:
-				stat.add_field(name="Poll System", value="Offline", inline=False)
+				stat.add_field(name="Admin commands", value="Offline", inline=False)
+		# Custom
+		try:
+			await self.bot.load_extension("Custom")
+		except Exception as e:
+			if isinstance(e,discord.ext.commands.ExtensionAlreadyLoaded):
+				stat.add_field(name="Custom commands", value="Online", inline=False)
+			else:
+				stat.add_field(name="Custom commands", value="Offline", inline=False)
+		# Profile
+		try:
+			await self.bot.load_extension("Profile")
+		except Exception as e:
+			if isinstance(e,discord.ext.commands.ExtensionAlreadyLoaded):
+				stat.add_field(name="Profile commands", value="Online", inline=False)
+			else:
+				stat.add_field(name="Profile commands", value="Offline", inline=False)
 		await ctx.send(embed = stat)
 async def setup(bot):
 	await bot.add_cog(Help(bot))

@@ -10,6 +10,11 @@ from matplotlib import pyplot as plt, ticker as ticker, dates as mdates
 from datetime import datetime, timedelta, timezone
 from discord.utils import get
 
+#English
+textfile = open('/Strings/en-errors.txt', 'r')
+english = textfile.read().splitlines()
+textfile.close()
+
 class Admin(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
@@ -29,10 +34,8 @@ class Admin(commands.Cog):
 	@commands.cooldown(1, 30, commands.BucketType.user)
 	@commands.is_owner()
 	async def w(self,ctx,points,*users: discord.Member):
-		# Get/Set Language
-		LangCog = self.bot.get_cog("LangCog")
-		user2 = ctx.message.author.id
-		language = LangCog.languagePicker(user2)
+		# Set language
+		language = english
 		
 		# Verify points is an integer
 		try:
@@ -118,10 +121,8 @@ class Admin(commands.Cog):
 	@commands.cooldown(1, 30, commands.BucketType.user)
 	@commands.is_owner()
 	async def r(self,ctx,points,*users: discord.Member):
-		# Get/Set Language
-		LangCog = self.bot.get_cog("LangCog")
-		user2 = ctx.message.author.id
-		language = LangCog.languagePicker(user2)
+		# Set language
+		language = english
 		
 		# Verify points is an integer
 		try:
@@ -208,6 +209,9 @@ class Admin(commands.Cog):
 	@commands.cooldown(1, 180, commands.BucketType.user)
 	@commands.is_owner()
 	async def lb(self,ctx):
+		# Set language
+		language = english
+		
 		clan_ref = db.reference(f"/ClanData/{ctx.guild.id}/name")
 		clan = clan_ref.get()
 		users_ref = db.reference(f"/ClanData/{ctx.guild.id}/users")
@@ -247,6 +251,9 @@ class Admin(commands.Cog):
 	@commands.command(pass_context = True)
 	@commands.is_owner()
 	async def stats(self,ctx):
+		# Set language
+		language = english
+	
 		# Declare references
 		interval_ref = db.reference(f"/ClanData/{ctx.guild.id}/season")
 		time_ref = db.reference(f"/ClanData/{ctx.guild.id}/timer")

@@ -7,6 +7,11 @@ from urllib.request import Request, urlopen
 from datetime import datetime, timedelta, timezone
 from discord.utils import get
 
+#English
+textfile = open('/Strings/en-errors.txt', 'r')
+english = textfile.read().splitlines()
+textfile.close()
+
 class Custom(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
