@@ -57,32 +57,35 @@ class Wins(commands.Cog):
 	#-------------------------------------------------------------------------------
 	#------------------------------ Best Players Log Tracking ----------------------
 	#-------------------------------------------------------------------------------	
-	@tasks.loop(seconds=30.0,count=None,reconnect=True)
-	async def bestPlayer(self):
-		channel = self.bot.get_channel(918557973209571358)
-		try:
-			message = await channel.fetch_message(
-					channel.last_message_id)
-					
-			mRef = db.reference('/780723109128962070/lastMessageBestPlayer')
-			message2 = int(mRef.get())
-			
-			if message2 != message.id:
-				message2 = message
-				text = message.content
-				channel2 = self.bot.get_channel(1048352090717696020)
-				channel3 = self.bot.get_channel(1079823196943028256)
-				await channel2.send(text)
-				await channel3.send(text)
-				
-				mRef = db.reference('/780723109128962070')
-				mRef.update({
-				'lastMessageBestPlayer': str(message.id)
-				})
-		except Exception as e:
-			# if message != none crashes bot if try/catch failed on message = await
-			print("An erorr occured in best player log, previous message null")
-			print(e)
+	#@tasks.loop(seconds=30.0,count=None,reconnect=True)
+	#async def bestPlayer(self):
+	#	channel = self.bot.get_channel(918557973209571358)
+	#	try:
+	#		message = await channel.fetch_message(
+	#				channel.last_message_id)
+	#				
+	#		mRef = db.reference('/780723109128962070/lastMessageBestPlayer')
+	#		message2 = int(mRef.get())
+	#		
+	#		if message2 != message.id:
+	#			message2 = message
+	#			text = message.content
+	#			
+	#			text.replace("discord.gg","discord,gg")
+	#			
+	#			channel2 = self.bot.get_channel(1048352090717696020)
+	#			channel3 = self.bot.get_channel(1079823196943028256)
+	#			await channel2.send(text)
+	#			await channel3.send(text)
+	#			
+	#			mRef = db.reference('/780723109128962070')
+	#			mRef.update({
+	#			'lastMessageBestPlayer': str(message.id)
+	#			})
+	#	except Exception as e:
+	#		# if message != none crashes bot if try/catch failed on message = await
+	#		print("An erorr occured in best player log, previous message null")
+	#		print(e)
 	#-------------------------------------------------------------------------------
 	#----------------------- Top Players  AND Clans Tracking -----------------------
 	#-------------------------------------------------------------------------------	
@@ -96,8 +99,13 @@ class Wins(commands.Cog):
 			# 1v1 Server
 			channel4 = self.bot.get_channel(1079823196943028256)
 			# Get messages from new community
-			message3 = await channel2.fetch_message(
-						channel2.last_message_id)
+			try:
+				message3 = await channel2.fetch_message(
+							channel2.last_message_id)
+			except:
+				mRef = db.reference('/780723109128962070/lastMessageTopPlayer')
+				tempID = int(mRef.get())
+				message3 = await channel2.fetch_message(tempID)
 						
 			result = await self.testStats(message3)
 			if result == True:
@@ -112,6 +120,7 @@ class Wins(commands.Cog):
 					if message2 != message.id:
 						message2 = message
 						text = message.content
+						text.replace("discord.gg","discord")
 						await channel2.send("**Top 20 Players**")
 						await channel2.send(text + "\n")
 						await channel4.send(text)
@@ -136,6 +145,7 @@ class Wins(commands.Cog):
 					if message2 != message.id:
 						message2 = message
 						text = message.content
+						text.replace("discord.gg","discord")
 						await channel2.send("**Top 10 Clans**")
 						await channel2.send(text)
 						
@@ -149,6 +159,9 @@ class Wins(commands.Cog):
 					print(e)
 		except Exception as e:
 			print("topPlayers loop error")
+			##### 
+			# NEED TO ADD A CHECK FOR IF MESSAGE WAS DELETED, TO THEN GRAB PREVIOUS ONES
+			#####
 			print(e)
 	#-------------------------------------------------------------------------------
 	#------------------------------ User Count Tracking ----------------------------
@@ -514,19 +527,19 @@ class Wins(commands.Cog):
 						clan = clan.replace('RBRACKET5', ']')
 						clan = clan.replace('QMARK5', '?')
 						# Set win strings
-						win = "[{0}] has won".format(clan)
-						win2 = "[{0}] has won".format(clan)
-						win3 = "[{0}]has won".format(clan)
-						win4 = "[ {0}] has won".format(clan)
-						win5 = "[ {0} ] has won".format(clan)
-						win6 = "[{0} ] has won".format(clan)
-						win7 = "{0}] has won".format(clan)
-						win8 = "[{0} has won".format(clan)
-						win9 = "[ {0}] has won".format(clan)
-						win10 = "[ {0} ] has won".format(clan)
+						win = "[{0}] won".format(clan)
+						win2 = "[{0}] won".format(clan)
+						win3 = "[{0}]won".format(clan)
+						win4 = "[ {0}] won".format(clan)
+						win5 = "[ {0} ] won".format(clan)
+						win6 = "[{0} ] won".format(clan)
+						win7 = "{0}] won".format(clan)
+						win8 = "[{0} won".format(clan)
+						win9 = "[ {0}] won".format(clan)
+						win10 = "[ {0} ] won".format(clan)
 						try:
 							# Find points string
-							result = re.search('has won(.*)p', text)
+							result = re.search('won(.*)p', text)
 							if result == None:
 								points2 = "0"
 							else:
@@ -594,7 +607,7 @@ class Wins(commands.Cog):
 								text = pytesseract.image_to_string(img)
 								# Debug commands plt.imshow(img) plt.show() print(text[:-1])
 								try:
-									result = re.search('has won(.*)p', text)
+									result = re.search('won(.*)p', text)
 									if result == None:
 										points2 = "0"
 									else:

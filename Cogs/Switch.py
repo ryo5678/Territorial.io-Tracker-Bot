@@ -64,6 +64,11 @@ class Switch(commands.Cog):
 	async def winSwitch(self,ctx):
 		try:
 			await self.bot.load_extension("Wins")
+			WinsCog = self.bot.get_cog("Wins")
+			WinsCog.bestPlayer.start()
+			WinsCog.topPlayer.start()
+			WinsCog.userCount.start()
+			WinsCog.userStatCheck.start()
 			await ctx.send("Wins is online")
 		except commands.ExtensionAlreadyLoaded:
 			await self.bot.unload_extension("Wins")
@@ -76,8 +81,8 @@ class Switch(commands.Cog):
 	async def pollSwitch(self,ctx):
 		try:
 			await self.bot.load_extension("Poll")
-			PollCog = self.bot.get_cog("Poll")
-			await PollCog.pollStart()
+			#PollCog = self.bot.get_cog("Poll")
+			#await PollCog.pollStart()
 			await ctx.send("Poll is online")
 		except commands.ExtensionAlreadyLoaded:
 			await self.bot.unload_extension("Poll")
