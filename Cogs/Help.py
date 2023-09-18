@@ -3,7 +3,7 @@ from discord.ext import commands
 from discord.ext.commands import bot
 
 #English
-textfile = open('/Strings/en-errors.txt', 'r')
+textfile = open('Strings/en-strings.txt', 'r')
 english = textfile.read().splitlines()
 textfile.close()
 

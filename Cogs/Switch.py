@@ -12,10 +12,10 @@ class Switch(commands.Cog):
 	@commands.is_owner()
 	async def helpSwitch(self,ctx):
 		try:
-			await self.bot.load_extension("Help")
+			await self.bot.load_extension("Cogs.Help")
 			await ctx.send("Help is online")
 		except commands.ExtensionAlreadyLoaded:
-			await self.bot.unload_extension("Help")
+			await self.bot.unload_extension("Cogs.Help")
 			await ctx.send("Help is offline")
 	#-------------------------------------------------------------------------------
 	#----------------------------- Load/Unload Clans Cog ---------------------------
@@ -24,10 +24,10 @@ class Switch(commands.Cog):
 	@commands.is_owner()
 	async def clanSwitch(self,ctx):
 		try:
-			await self.bot.load_extension("Clans")
+			await self.bot.load_extension("Cogs.Clans")
 			await ctx.send("Clans is online")
 		except commands.ExtensionAlreadyLoaded:
-			await self.bot.unload_extension("Clans")
+			await self.bot.unload_extension("Cogs.Clans")
 			await ctx.send("Clans is offline")
 	#-------------------------------------------------------------------------------
 	#----------------------------- Load/Unload Profile Cog -------------------------
@@ -36,10 +36,10 @@ class Switch(commands.Cog):
 	@commands.is_owner()
 	async def profileSwitch(self,ctx):
 		try:
-			await self.bot.load_extension("Profile")
+			await self.bot.load_extension("Cogs.Profile")
 			await ctx.send("Profile is online")
 		except commands.ExtensionAlreadyLoaded:
-			await self.bot.unload_extension("Profile")
+			await self.bot.unload_extension("Cogs.Profile")
 			await ctx.send("Profile is offline")
 	#-------------------------------------------------------------------------------
 	#----------------------------- Load/Unload Wins Cog ----------------------------
@@ -48,7 +48,7 @@ class Switch(commands.Cog):
 	@commands.is_owner()
 	async def winSwitch(self,ctx):
 		try:
-			await self.bot.load_extension("Wins")
+			await self.bot.load_extension("Cogs.Wins")
 			WinsCog = self.bot.get_cog("Wins")
 			WinsCog.bestPlayer.start()
 			WinsCog.topPlayer.start()
@@ -56,7 +56,7 @@ class Switch(commands.Cog):
 			WinsCog.userStatCheck.start()
 			await ctx.send("Wins is online")
 		except commands.ExtensionAlreadyLoaded:
-			await self.bot.unload_extension("Wins")
+			await self.bot.unload_extension("Cogs.Wins")
 			await ctx.send("Wins is offline")
 	#-------------------------------------------------------------------------------
 	#----------------------------- Load/Unload Admin Cog ----------------------------
@@ -65,10 +65,10 @@ class Switch(commands.Cog):
 	@commands.is_owner()
 	async def adminSwitch(self,ctx):
 		try:
-			await self.bot.load_extension("Admin")
+			await self.bot.load_extension("Cogs.Admin")
 			await ctx.send("Admin is online")
 		except commands.ExtensionAlreadyLoaded:
-			await self.bot.unload_extension("Admin")
+			await self.bot.unload_extension("Cogs.Admin")
 			await ctx.send("Admin is offline")
 	#-------------------------------------------------------------------------------
 	#----------------------------- Load/Unload Custom Cog ----------------------------
@@ -77,10 +77,10 @@ class Switch(commands.Cog):
 	@commands.is_owner()
 	async def customSwitch(self,ctx):
 		try:
-			await self.bot.load_extension("Custom")
+			await self.bot.load_extension("Cogs.Custom")
 			await ctx.send("Custom is online")
 		except commands.ExtensionAlreadyLoaded:
-			await self.bot.unload_extension("Custom")
+			await self.bot.unload_extension("Cogs.Custom")
 			await ctx.send("Custom is offline")
 
 async def setup(bot):

@@ -13,7 +13,7 @@ import functools
 import typing
 
 #English
-textfile = open('/Strings/en-errors.txt', 'r')
+textfile = open('Strings/en-strings.txt', 'r')
 english = textfile.read().splitlines()
 textfile.close()
 
@@ -148,6 +148,10 @@ class Clans(commands.Cog):
 		# Set user
 		user = ctx.message.author.id
 		#plt.clf()
+		#TEMPORARY 
+		await ctx.send("This command is temporarily disabled while it is being rebuilt.")
+		return
+		#TEMPORARY
 		await ctx.send(language[3])
 		
 		clanList = clans.split()
@@ -284,85 +288,63 @@ class Clans(commands.Cog):
 	#----------------------------- Search For Clan  --------------------------------
 	#-------------------------------------------------------------------------------
 	@to_thread
-	def clanMath(self,user,ctx,clan,duration):
+	def clanMath(self,user,ctx,clan,year,month,day):
 		try:
-			timeDif = timedelta(duration)
-			newTime = ctx.message.created_at
-			oldTime = newTime - timeDif
-			newTime = newTime + timedelta(1)
-			# Get all games from one week ago to present
-			ref = db.reference('gameData4')
-			ref5 = db.reference('gameData5')
-			ref6 = db.reference('gameData6')
-			ref7 = db.reference('gameData7')
-			snapshot = ref.order_by_child('Time').start_at(str(oldTime)).end_at(str(newTime)).get()
-			snapshot5 = ref5.order_by_child('Time').start_at(str(oldTime)).end_at(str(newTime)).get()
-			snapshot6 = ref6.order_by_child('Time').start_at(str(oldTime)).end_at(str(newTime)).get()
-			snapshot7 = ref7.order_by_child('Time').start_at(str(oldTime)).end_at(str(newTime)).get()
-			snapshot = list(snapshot.items())
-			snapshot5 = list(snapshot5.items())
-			snapshot6 = list(snapshot6.items())
-			snapshot7 = list(snapshot7.items())
-			snapshot = snapshot + snapshot5 + snapshot6 + snapshot7
-			games = list()
-			for i in range(len(snapshot)):
-				if(snapshot[i][1]['Clan'] == clan):
-					games.append(snapshot[i])
+			# Get all games from today
+			ref = db.reference(f'gameDataFinal/{year}/{month}/{day}/{clan}')
+			snapshot = ref.get()
+			games = list(snapshot.items())
+	
+			# Number of maps from today
 			x = len(games)
+			# Total number of games
+			y = 0
+			# Empty lists
 			times = list()
 			scores = list()
-			for i in range(len(games)):
-				temp = games[i][1]['Time'].replace('T',' ')
-				try:
-					times.append(datetime.fromisoformat(temp))
-				except:
-					times.append(datetime.strptime(temp,"%Y-%m-%d %H:%M:%S.%f"))
-					#times.append(datetime.strptime(temp,"%Y-%m-%d %H:%M:%S"))
-				scores.append(games[i][1]['Score'])
-			return x,times,scores
+			# Loop games
+			for i in range(x):
+				z = 0
+				# List from each map
+				tempGames = list(games[i][1].items())
+				z = len(tempGames)
+				for j in range(z):
+					# Get time from each game
+					temp = tempGames[j][1]['Time'].replace('T',' ')
+					try:
+						times.append(datetime.fromisoformat(temp))
+					except:
+						times.append(datetime.strptime(temp,"%Y-%m-%d %H:%M:%S.%f"))
+						#times.append(datetime.strptime(temp,"%Y-%m-%d %H:%M:%S"))
+					# Get score from each game
+					scores.append(tempGames[j][1]['Score'])
+					y += 1
+			return x,times,scores,y
 		except Exception as e:
 			print("clanMath error")
 			print(e)
 			return None
 	@commands.command(pass_context = True)
 	@commands.cooldown(1, 60, commands.BucketType.user)
-	async def clan(self,ctx,clan,duration = None):
+	async def clan(self,ctx,clan):
 		# Set language
 		language = english
 		# Set user
 		user = ctx.message.author.id
+		# Set time
+		time = ctx.message.created_at
+		day = time.day
+		month = time.month
+		year = time.year
+		time = time.isoformat()
+		# List of months
+		months = ("January","February","March","April","May","June","July","August","September","October","November","December")
+		#TEMPORARY 
+		await ctx.send("This command is temporarily limited while it is being rebuilt.")
+		#TEMPORARY
 		plt.clf()
-		# Check for valid duration
-		if(duration is not None):
-			try:
-				# Valid integer check
-				duration = int(duration)
-				# $5 Patrons, 1 year instead of 3 weeks
-				if(user == 746994669715587182 or user == 138752093308583936 or user == 681457461441593371) and (duration >= 360):
-					ctx.command.reset_cooldown(ctx)
-					await ctx.send("Please select a duration less than or equal to 360")
-					return
-				# $10 Patrons, 2 years
-				elif(user == 314969222516047872) and (duration > 720) :
-					ctx.command.reset_cooldown(ctx)
-					await ctx.send("Please select a duration less than or equal to 720")
-					return
-				# $1 Patrons, 6 months
-				elif(user == 205367377506992128) and (duration > 180):
-					ctx.command.reset_cooldown(ctx)
-					await ctx.send("Please select a duration less than or equal to 180")
-					return
-				elif(duration > 60) and (user != 746994669715587182 and user != 138752093308583936 and user != 681457461441593371 and user != 205367377506992128 and user != 314969222516047872):
-					ctx.command.reset_cooldown(ctx)
-					await ctx.send("Please select a duration less than or equal to 60")
-					return
-			except:
-				ctx.command.reset_cooldown(ctx)
-				await ctx.send("Duration must be a valid positive integer between 1 and 720")
-				return
-		else:
-			duration = 21
 		try:
+			# Convert clan name to database readable name
 			clan.strip("[]")
 			clan = clan.replace('.', 'period5')
 			clan = clan.replace('$', 'dollar5')
@@ -378,26 +360,32 @@ class Clans(commands.Cog):
 				await ctx.send(language[156].format(clan))
 			else:
 				try:
-					stuff = await self.clanMath(user,ctx,clan,duration)
+					stuff = await self.clanMath(user,ctx,clan,year,month,day)
 					if stuff is None:
 						await ctx.send("Something went wrong")
 						ctx.command.reset_cooldown(ctx)
 						return
-					x = stuff[0]
-					times = stuff[1]
-					scores = stuff[2]
+					x = stuff[3]
+					times = sorted(stuff[1])
+					scores = list()
+					for a in times:
+						scores.append(stuff[2][stuff[1].index(a)])
 					# Make plot for score vs time
 					plt.xlabel(language[157])
 					plt.ylabel(language[158])
-					plt.title(language[159])
+					plt.title(language[159].format(months[month-1], day))
 					
 					
 					plt.plot(times,scores)
 					ax = plt.gca()
-					myFmt = mdates.DateFormatter('%m/%d')
+					myFmt = mdates.DateFormatter('%H:%M')
 					ax.xaxis.set_major_formatter(myFmt)
-					ax.xaxis.set_major_locator(ticker.LinearLocator(9))
-					ax.xaxis.set_minor_locator(ticker.LinearLocator(10))
+					if len(times) < 9:
+						ax.xaxis.set_major_locator(ticker.LinearLocator(len(times)))
+						ax.xaxis.set_minor_locator(ticker.LinearLocator(0))
+					else:
+						ax.xaxis.set_major_locator(ticker.LinearLocator(9))
+						ax.xaxis.set_minor_locator(ticker.LinearLocator(10))
 					# Save plot for discord embed
 					data_stream = io.BytesIO()
 					plt.savefig(data_stream, format='png', bbox_inches="tight", dpi = 80)
@@ -421,50 +409,14 @@ class Clans(commands.Cog):
 				try:
 					y = clanData['wins']
 				except:
-					ref = db.reference('gameData4')
-					ref5 = db.reference('gameData5')
-					ref6 = db.reference('gameData6')
-					ref7 = db.reference('gameData7')
-					snapshot2 = ref.order_by_child('Clan').equal_to(clan).get()
-					snapshot3 = ref5.order_by_child('Clan').equal_to(clan).get()
-					snapshot4 = ref6.order_by_child('Clan').equal_to(clan).get()
-					snapshot7 = ref7.order_by_child('Clan').equal_to(clan).get()
-					snapshot2 = list(snapshot2.items())
-					snapshot3 = list(snapshot3.items())
-					snapshot4 = list(snapshot4.items())
-					snapshot7 = list(snapshot7.items())
-					snapshot2 = snapshot2 + snapshot3 + snapshot4 + snapshot7
-					y = len(snapshot2)
-					ref2.update({
-					'wins': y
-					})
+					y = "error"
 				# Check for wins2023
 				try:
 					z = clanData['wins2023']
 				except:
-					try:
-						ref = db.reference('gameData4')
-						ref5 = db.reference('gameData5')
-						ref6 = db.reference('gameData6')
-						ref7 = db.reference('gameData7')
-						# Set wins2023 if it does not yet exist
-						snapshot3 = ref5.order_by_child('Time').start_at("2022-01-01T00:00:00.000Z").get()
-						snapshot4 = ref6.order_by_child('Clan').equal_to(clan).get()
-						snapshot7 = ref7.order_by_child('Clan').equal_to(clan).get()
-						snapshot3 = list(snapshot3.items())
-						snapshot4 = list(snapshot4.items())
-						snapshot7 = list(snapshot7.items())
-						games = list()
-						for i in range(len(snapshot3)):
-							if(snapshot3[i][1]['Clan'] == clan):
-								games.append(snapshot3[i])
-						z = len(snapshot4) + len(snapshot7) + len(games)
-						ref2.update({
-						'wins2023': z
-						})
-					except Exception as e:
-						print(e)
+					z = "error"
 				
+				# Convert database readable clan name back to normal
 				clan = clan.replace('PERIOD5', '.')
 				clan = clan.replace('DOLLAR5', '$')
 				clan = clan.replace('HTAG5', '#')
@@ -474,7 +426,17 @@ class Clans(commands.Cog):
 				clan = clan.replace('QMARK5', '?')
 				
 				score = clanData['score']
-				await ctx.send(language[162].format(clan,score,x,z,y,duration))
+				#
+				#
+				# NOTICE
+				#
+				#
+				# THIS
+				#
+				#
+				#
+				# Replace score from database with score from territorial.io/clans ?????
+				await ctx.send(language[162].format(clan,score,x,z,y))
 		except Exception as e:
 			print(e)
 			# Catch missing message permission
@@ -496,6 +458,10 @@ class Clans(commands.Cog):
 		language = english
 		# Set user
 		user = ctx.message.author.id
+		#TEMPORARY 
+		await ctx.send("This command is temporarily disabled while it is being rebuilt.")
+		return
+		#TEMPORARY
 		# Get scores
 		ref = db.reference('/{0}/clans'.format(780723109128962070))
 		clanList = ref.order_by_child('score').limit_to_last(50).get()
@@ -532,6 +498,10 @@ class Clans(commands.Cog):
 		language = english
 		# Set user
 		user = ctx.message.author.id
+		#TEMPORARY 
+		await ctx.send("This command is temporarily disabled while it is being rebuilt.")
+		return
+		#TEMPORARY
 		# Get scores
 		ref = db.reference('/{0}/clans'.format(780723109128962070))
 		clanList = ref.order_by_child('score').limit_to_last(25).get()
@@ -550,6 +520,10 @@ class Clans(commands.Cog):
 	async def top(self,ctx):
 		# Set language
 		language = english
+		#TEMPORARY 
+		await ctx.send("This command is temporarily disabled while it is being rebuilt.")
+		return
+		#TEMPORARY
 		await ctx.send(language[154])
 	#-------------------------------------------------------------------------------
 	#-------------------------------  History Grab  --------------------------------
@@ -630,6 +604,10 @@ class Clans(commands.Cog):
 		language = english
 		# Set user
 		user = ctx.message.author.id
+		#TEMPORARY 
+		await ctx.send("This command is temporarily disabled while it is being rebuilt.")
+		return
+		#TEMPORARY
 		# Get scores
 		ref = db.reference('/{0}/clans'.format(780723109128962070))
 		clanList = ref.order_by_child('score').limit_to_last(100).get()
@@ -682,6 +660,10 @@ class Clans(commands.Cog):
 		language = english
 		# Set user
 		user = ctx.message.author.id
+		#TEMPORARY 
+		await ctx.send("This command is temporarily disabled while it is being rebuilt.")
+		return
+		#TEMPORARY
 		try:
 			clan.strip("[]")
 			clan = clan.replace('.', 'period5')

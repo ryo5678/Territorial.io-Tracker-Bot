@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from discord.ext.commands import CommandNotFound, MissingPermissions, MessageNotFound, NotOwner, BotMissingPermissions, CommandOnCooldown, MissingRequiredArgument
 
 #English
-textfile = open('/Strings/en-errors.txt', 'r')
+textfile = open('Strings/en-errors.txt', 'r')
 english = textfile.read().splitlines()
 textfile.close()
 
@@ -75,14 +75,6 @@ class Error(commands.Cog):
 				#print(command)
 			except Exception as e:
 				print(e)
-			if(command == 'setsolo'):
-				try:
-					return await ctx.send(language[7] + '\n' + language[8])
-				except:
-					try:
-						return await ctx.author.send(language[7] + '\n' + language[8])
-					except:
-						return
 			if(command == 'setclan'):
 				try:
 					return await ctx.send(language[9])
@@ -97,14 +89,6 @@ class Error(commands.Cog):
 				except:
 					try:
 						return await ctx.send(language[10] + '\n' + language[11] + '\n' + language[12])
-					except:
-						return
-			if(command == 'setlanguage'):
-				try:
-					return await ctx.send(language[13])
-				except:
-					try:
-						return await ctx.send(language[13])
 					except:
 						return
 			if(command == 'clanboard'):

@@ -11,7 +11,7 @@ from datetime import datetime, timedelta, timezone
 from discord.utils import get
 
 #English
-textfile = open('/Strings/en-errors.txt', 'r')
+textfile = open('Strings/en-strings.txt', 'r')
 english = textfile.read().splitlines()
 textfile.close()
 

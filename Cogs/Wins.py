@@ -12,7 +12,7 @@ path_to_tesseract = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 winAdmins = ((138752093308583936,"ELITE"),(524835935276498946,"ELITE"),(746381696139788348,"ISLAM"),(735145539494215760,"ISLAM"),(514953130178248707,"RL"))
 
 #English
-textfile = open('/Strings/en-errors.txt', 'r')
+textfile = open('Strings/en-strings.txt', 'r')
 english = textfile.read().splitlines()
 textfile.close()
 

@@ -11,7 +11,7 @@ from datetime import datetime, timedelta, timezone
 from discord.utils import get
 
 #English
-textfile = open('/Strings/en-errors.txt', 'r')
+textfile = open('Strings/en-strings.txt', 'r')
 english = textfile.read().splitlines()
 textfile.close()
 
@@ -25,8 +25,30 @@ class Admin(commands.Cog):
 		async def wrapper(*args, **kwargs):
 			return await asyncio.to_thread(func, *args, **kwargs)
 		return wrapper
-	
-	
+	#-------------------------------------------------------------------------------
+	#------------------------------ Set Announcement Channel -----------------------------
+	#-------------------------------------------------------------------------------	
+	@bot.command(pass_context = True)
+	@commands.has_permissions(administrator=True)
+	@commands.cooldown(1, 600, commands.BucketType.user)
+	async def updates(ctx):
+		# Set language
+		language = english
+		# Set user
+		user = ctx.message.author.id
+		# Get guild id
+		guild = ctx.message.guild.id
+		ref = db.reference('/channels/{0}'.format(guild))
+		if ref.get() != None:
+			await ctx.send(language[115])
+		else:
+			ref = db.reference('/channels'.format(guild))
+			ref.update({
+			guild: "{0}".format(ctx.channel.id)
+			})
+			await ctx.send(language[116])
+		await ctx.message.delete()
+		
 	#-------------------------------------------------------------------------------
 	#------------------------------ Add User(s) Points -----------------------------
 	#-------------------------------------------------------------------------------
@@ -389,4 +411,4 @@ class Total(discord.ui.View):
 	#		child.disabled=True
 	#	await interaction.response.edit_message(view=self)
 async def setup(bot):
-	await bot.add_cog(Profile(bot))
+	await bot.add_cog(Admin(bot))
