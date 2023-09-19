@@ -288,38 +288,95 @@ class Clans(commands.Cog):
 	#----------------------------- Search For Clan  --------------------------------
 	#-------------------------------------------------------------------------------
 	@to_thread
-	def clanMath(self,user,ctx,clan,year,month,day):
+	def clanMath(self,user,ctx,clan,year,month,day,hour):
 		try:
+			# Get all games from previous day
+			months0 = (4,6,9,11)
+			months1 = (1,3,5,7,8,10,12)
+			# Add leap year logic when not being lazy
+			# February case
+			if month == 2:
+				if day < 29 and day > 1:
+					ref2 = db.reference(f'gameDataFinal/{year}/{month}/{day-1}/{clan}')
+				if day == 1:
+					ref2 = db.reference(f'gameDataFinal/{year}/1/31/{clan}')
+			# April June September November
+			elif month in months0:
+				if day < 31 and day > 1:
+					ref2 = db.reference(f'gameDataFinal/{year}/{month}/{day-1}/{clan}')
+				if day == 1:
+					ref2 = db.reference(f'gameDataFinal/{year}/{month-1}/31/{clan}')
+			# January March May July August October December
+			elif month in months1:
+				if day < 32 and day > 1:
+					ref2 = db.reference(f'gameDataFinal/{year}/{month}/{day-1}/{clan}')
+				if day == 1:
+					if month == 1:
+						ref2 = db.reference(f'gameDataFinal/{year}/12/31/{clan}')
+					elif month == 3:
+						ref2 = db.reference(f'gameDataFinal/{year}/2/28/{clan}')
+					else:
+						ref2 = db.reference(f'gameDataFinal/{year}/{month-1}/31/{clan}')
+
 			# Get all games from today
 			ref = db.reference(f'gameDataFinal/{year}/{month}/{day}/{clan}')
 			snapshot = ref.get()
-			games = list(snapshot.items())
-	
-			# Number of maps from today
-			x = len(games)
-			# Total number of games
-			y = 0
-			# Empty lists
-			times = list()
-			scores = list()
-			# Loop games
-			for i in range(x):
-				z = 0
-				# List from each map
-				tempGames = list(games[i][1].items())
-				z = len(tempGames)
-				for j in range(z):
-					# Get time from each game
-					temp = tempGames[j][1]['Time'].replace('T',' ')
-					try:
-						times.append(datetime.fromisoformat(temp))
-					except:
-						times.append(datetime.strptime(temp,"%Y-%m-%d %H:%M:%S.%f"))
-						#times.append(datetime.strptime(temp,"%Y-%m-%d %H:%M:%S"))
-					# Get score from each game
-					scores.append(tempGames[j][1]['Score'])
-					y += 1
-			return x,times,scores,y
+			snapshot2 = ref2.get()
+			if snapshot == None and snapshot2 == None:
+				return
+			else:
+				# Total number of games
+				y = 0
+				# Empty lists
+				times = list()
+				scores = list()
+				# Previous day  games
+				if snapshot2 != None:
+					games = list(snapshot2.items())
+					# Number of maps from today
+					x = len(games)
+					# Loop games
+					for i in range(x):
+						z = 0
+						# List from each map
+						tempGames = list(games[i][1].items())
+						z = len(tempGames)
+						for j in range(z):
+							# Get time from each game
+							temp = tempGames[j][1]['Time'].replace('T',' ')
+							dt = datetime.fromisoformat(temp)
+							if hour <= dt.hour:
+								try:
+									times.append(dt)
+								except:
+									times.append(datetime.strptime(temp,"%Y-%m-%d %H:%M:%S.%f"))
+									#times.append(datetime.strptime(temp,"%Y-%m-%d %H:%M:%S"))
+								# Get score from each game
+								scores.append(tempGames[j][1]['Score'])
+								y += 1
+				if snapshot != None:
+					# Current day games
+					games = list(snapshot.items())
+					# Number of maps from today
+					x = len(games)
+					# Loop games
+					for i in range(x):
+						z = 0
+						# List from each map
+						tempGames = list(games[i][1].items())
+						z = len(tempGames)
+						for j in range(z):
+							# Get time from each game
+							temp = tempGames[j][1]['Time'].replace('T',' ')
+							try:
+								times.append(datetime.fromisoformat(temp))
+							except:
+								times.append(datetime.strptime(temp,"%Y-%m-%d %H:%M:%S.%f"))
+								#times.append(datetime.strptime(temp,"%Y-%m-%d %H:%M:%S"))
+							# Get score from each game
+							scores.append(tempGames[j][1]['Score'])
+							y += 1
+			return times,scores,y
 		except Exception as e:
 			print("clanMath error")
 			print(e)
@@ -336,6 +393,7 @@ class Clans(commands.Cog):
 		day = time.day
 		month = time.month
 		year = time.year
+		hour = time.hour
 		time = time.isoformat()
 		# List of months
 		months = ("January","February","March","April","May","June","July","August","September","October","November","December")
@@ -360,20 +418,20 @@ class Clans(commands.Cog):
 				await ctx.send(language[156].format(clan))
 			else:
 				try:
-					stuff = await self.clanMath(user,ctx,clan,year,month,day)
+					stuff = await self.clanMath(user,ctx,clan,year,month,day,hour)
 					if stuff is None:
-						await ctx.send("Something went wrong")
+						await ctx.send("Something went wrong, or not enough recent data exists")
 						ctx.command.reset_cooldown(ctx)
 						return
-					x = stuff[3]
-					times = sorted(stuff[1])
+					x = stuff[2]
+					times = sorted(stuff[0])
 					scores = list()
 					for a in times:
-						scores.append(stuff[2][stuff[1].index(a)])
+						scores.append(stuff[1][stuff[0].index(a)])
 					# Make plot for score vs time
 					plt.xlabel(language[157])
 					plt.ylabel(language[158])
-					plt.title(language[159].format(months[month-1], day))
+					plt.title(language[159])
 					
 					
 					plt.plot(times,scores)
@@ -383,6 +441,7 @@ class Clans(commands.Cog):
 					if len(times) < 9:
 						ax.xaxis.set_major_locator(ticker.LinearLocator(len(times)))
 						ax.xaxis.set_minor_locator(ticker.LinearLocator(0))
+						ax.yaxis.set_major_locator(ticker.LinearLocator(len(scores)))
 					else:
 						ax.xaxis.set_major_locator(ticker.LinearLocator(9))
 						ax.xaxis.set_minor_locator(ticker.LinearLocator(10))
@@ -406,16 +465,6 @@ class Clans(commands.Cog):
 				except:
 					await ctx.send(language[161])
 				#print(games[x - 1])
-				try:
-					y = clanData['wins']
-				except:
-					y = "error"
-				# Check for wins2023
-				try:
-					z = clanData['wins2023']
-				except:
-					z = "error"
-				
 				# Convert database readable clan name back to normal
 				clan = clan.replace('PERIOD5', '.')
 				clan = clan.replace('DOLLAR5', '$')
@@ -436,7 +485,7 @@ class Clans(commands.Cog):
 				#
 				#
 				# Replace score from database with score from territorial.io/clans ?????
-				await ctx.send(language[162].format(clan,score,x,z,y))
+				await ctx.send(language[162].format(clan,score,x))
 		except Exception as e:
 			print(e)
 			# Catch missing message permission
@@ -448,83 +497,6 @@ class Clans(commands.Cog):
 				except Exception as e:
 					print("{0} id {1} name ".format(ctx.message.guild.id,ctx.message.guild.name))
 					print(e)
-	#-------------------------------------------------------------------------------
-	#---------------------- Public Top 50 Clans (Non updating) ---------------------
-	#-------------------------------------------------------------------------------	
-	@commands.command(pass_context = True)
-	@commands.cooldown(1, 600, commands.BucketType.user)
-	async def top50(self,ctx):
-		# Set language
-		language = english
-		# Set user
-		user = ctx.message.author.id
-		#TEMPORARY 
-		await ctx.send("This command is temporarily disabled while it is being rebuilt.")
-		return
-		#TEMPORARY
-		# Get scores
-		ref = db.reference('/{0}/clans'.format(780723109128962070))
-		clanList = ref.order_by_child('score').limit_to_last(50).get()
-		clanList2 = list(clanList.items())
-		clanList2.reverse()
-		# Embed disabled work around
-		#if int(ctx.guild.id) == 780723109128962070:
-		#	nonembed = ""
-		#	for i in range(50):
-		#		if i % 2 == 0:
-		#			nonembed2 = "#{0} {1} {2}   |   ".format(i+1,clanList2[i][0],clanList2[i][1]['score'])
-		#		else:
-		#			nonembed2 = "#{0} {1} {2} \n".format(i+1,clanList2[i][0],clanList2[i][1]['score'])
-		#		nonembed = nonembed + nonembed2
-		#	await ctx.send(nonembed)
-		#else:
-		ladder = discord.Embed(title=language[152], description=language[136], color=0x33DDFF)
-		ladder2 = discord.Embed(title=language[152], description=language[137], color=0x33DDFF)
-		# First Ladder
-		for i in range(25):
-			ladder.add_field(name=language[149].format(i+1) + clanList2[i][0], value=clanList2[i][1]['score'], inline=True)
-		msg = await ctx.send(embed=ladder)
-		# Second Ladder
-		for i in range(25):
-			ladder2.add_field(name=language[149].format(i+26) + clanList2[i+25][0], value=clanList2[i+25][1]['score'], inline=True)
-		msg2 = await ctx.send(embed=ladder2)
-	#-------------------------------------------------------------------------------
-	#---------------------- Public Top 25 Clans (Non updating) ---------------------
-	#-------------------------------------------------------------------------------	
-	@commands.command(pass_context = True)
-	@commands.cooldown(1, 600, commands.BucketType.user)
-	async def top25(self,ctx):
-		# Set language
-		language = english
-		# Set user
-		user = ctx.message.author.id
-		#TEMPORARY 
-		await ctx.send("This command is temporarily disabled while it is being rebuilt.")
-		return
-		#TEMPORARY
-		# Get scores
-		ref = db.reference('/{0}/clans'.format(780723109128962070))
-		clanList = ref.order_by_child('score').limit_to_last(25).get()
-		clanList2 = list(clanList.items())
-		clanList2.reverse()
-		ladder = discord.Embed(title=language[152], description=language[136], color=0x33DDFF)
-		# First Ladder
-		for i in range(25):
-			ladder.add_field(name=language[149].format(i+1) + clanList2[i][0], value=clanList2[i][1]['score'], inline=True)
-		msg = await ctx.send(embed=ladder)
-	#-------------------------------------------------------------------------------
-	#-------------------------------  Top Override  --------------------------------
-	#-------------------------------------------------------------------------------	
-	@commands.command(pass_context = True)
-	@commands.cooldown(1, 600, commands.BucketType.user)
-	async def top(self,ctx):
-		# Set language
-		language = english
-		#TEMPORARY 
-		await ctx.send("This command is temporarily disabled while it is being rebuilt.")
-		return
-		#TEMPORARY
-		await ctx.send(language[154])
 	#-------------------------------------------------------------------------------
 	#-------------------------------  History Grab  --------------------------------
 	#-------------------------------------------------------------------------------
@@ -594,186 +566,7 @@ class Clans(commands.Cog):
 			# if message != none crashes bot if try/catch failed on message = await
 			print("An erorr occured in grabGameHistory, previous message null")
 			print(e)
-	#-------------------------------------------------------------------------------
-	#---------------------- Public Top 100 Clans (Non updating) --------------------
-	#-------------------------------------------------------------------------------	
-	@commands.command(pass_context = True)
-	@commands.cooldown(1, 600, commands.BucketType.user)
-	async def top100(self,ctx):
-		# Set language
-		language = english
-		# Set user
-		user = ctx.message.author.id
-		#TEMPORARY 
-		await ctx.send("This command is temporarily disabled while it is being rebuilt.")
-		return
-		#TEMPORARY
-		# Get scores
-		ref = db.reference('/{0}/clans'.format(780723109128962070))
-		clanList = ref.order_by_child('score').limit_to_last(100).get()
-		clanList2 = list(clanList.items())
-		clanList2.reverse()
-		ladder = discord.Embed(title=language[152], description=language[136], color=0x33DDFF)
-		ladder2 = discord.Embed(title=language[152], description=language[137], color=0x33DDFF)
-		ladder3 = discord.Embed(title=language[152], description=language[138], color=0x33DDFF)
-		ladder4 = discord.Embed(title=language[152], description=language[139], color=0x33DDFF)
-		# For top 200 clans
-		#ladder5 = discord.Embed(title="Global Clan Rankings", description="**Current Top 101 to 125**", color=0x33DDFF)
-		#ladder6 = discord.Embed(title="Global Clan Rankings", description="**Current Top 126 to 150**", color=0x33DDFF)
-		#ladder7 = discord.Embed(title="Global Clan Rankings", description="**Current Top 151 to 175**", color=0x33DDFF)
-		#ladder8 = discord.Embed(title="Global Clan Rankings", description="**Current Top 176 to 200**", color=0x33DDFF)
-		# First Ladder
-		for i in range(25):
-			ladder.add_field(name=language[149].format(i+1) + clanList2[i][0], value=clanList2[i][1]['score'], inline=True)
-		msg = await ctx.send(embed=ladder)
-		# Second Ladder
-		for i in range(25):
-			ladder2.add_field(name=language[149].format(i+26) + clanList2[i+25][0], value=clanList2[i+25][1]['score'], inline=True)
-		msg2 = await ctx.send(embed=ladder2)
-		for i in range(25):
-			ladder3.add_field(name=language[149].format(i+51) + clanList2[i+50][0], value=clanList2[i+50][1]['score'], inline=True)
-		msg3 = await ctx.send(embed=ladder3)
-		# Second Ladder
-		for i in range(25):
-			ladder4.add_field(name=language[149].format(i+76) + clanList2[i+75][0], value=clanList2[i+75][1]['score'], inline=True)
-		msg4 = await ctx.send(embed=ladder4)
-		# For top 200 clans
-		#for i in range(25):
-		#	ladder5.add_field(name="#{0} ".format(i+101) + clanList2[i+100][0], value=clanList2[i+100][1]['score'], inline=True)
-		#msg5 = await ctx.send(embed=ladder5)
-		#for i in range(25):
-		#	ladder6.add_field(name="#{0} ".format(i+126) + clanList2[i+125][0], value=clanList2[i+125][1]['score'], inline=True)
-		#msg6 = await ctx.send(embed=ladder6)
-		#for i in range(25):
-		#	ladder7.add_field(name="#{0} ".format(i+151) + clanList2[i+150][0], value=clanList2[i+150][1]['score'], inline=True)
-		#msg7 = await ctx.send(embed=ladder7)
-		#for i in range(25):
-		#	ladder8.add_field(name="#{0} ".format(i+176) + clanList2[i+175][0], value=clanList2[i+175][1]['score'], inline=True)
-		#msg8 = await ctx.send(embed=ladder8)
-	#-------------------------------------------------------------------------------
-	#----------------------------- Clan Wins Leaderboard ---------------------------
-	#-------------------------------------------------------------------------------
-	@commands.command(pass_context = True)
-	@commands.cooldown(1, 3600, commands.BucketType.user)
-	async def clanboard(self,ctx,clan):
-		# Set language
-		language = english
-		# Set user
-		user = ctx.message.author.id
-		#TEMPORARY 
-		await ctx.send("This command is temporarily disabled while it is being rebuilt.")
-		return
-		#TEMPORARY
-		try:
-			clan.strip("[]")
-			clan = clan.replace('.', 'period5')
-			clan = clan.replace('$', 'dollar5')
-			clan = clan.replace('#', 'htag5')
-			clan = clan.replace('[', 'lbracket5')
-			clan = clan.replace('/', 'slash5')
-			clan = clan.replace(']', 'rbracket5')
-			clan = clan.replace('?', 'qmark5')
-			clan = clan.upper()
-			guild = ctx.message.guild.id
-			try:
-				ref = db.reference('/users')
-				refList = ref.get()
-				users = list(refList.items())
-				#print(users)
-				users2 = list()
-				for i in range(len(users)):
-					try:
-						exists = users[i][1]['clans']['{0}'.format(clan)]['wins']
-						users2.append(users[i])
-					except:
-						pass
-				x = len(users2)
-				users2.sort(key=lambda x: int(x[1]['clans']['{0}'.format(clan)]['wins']))
-				users2.reverse()
-				ladder = discord.Embed(title=language[135].format(clan), description=language[136], color=0x33DDFF)
-				ladder2 = discord.Embed(title=language[135].format(clan), description=language[137], color=0x33DDFF)
-				ladder3 = discord.Embed(title=language[135].format(clan), description=language[138], color=0x33DDFF)
-				ladder4 = discord.Embed(title=language[135].format(clan), description=language[139], color=0x33DDFF)
-				# One Ladder
-				if x <= 25:
-					for i in range(x):
-						name = await self.bot.fetch_user(users2[i][0])
-						ladder.add_field(name=language[140].format(i+1,name.name), value=language[141].format(users2[i][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
-					msg = await ctx.send(embed=ladder)
-				# Two Ladders
-				elif x <= 50:
-					await ctx.send(language[142])
-					for i in range(25):
-						name = await self.bot.fetch_user(users2[i][0])
-						ladder.add_field(name=language[140].format(i+1,name.name), value=language[141].format(users2[i][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
-					msg = await ctx.send(embed=ladder)
-					for i in range(x-25):
-						name = await self.bot.fetch_user(users2[i+25][0])
-						ladder2.add_field(name=language[140].format(i+26,name.name), value=language[141].format(users2[i+25][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
-					msg2 = await ctx.send(embed=ladder2)
-				# Three Ladders
-				elif x <= 75:
-					await ctx.send(language[143])
-					for i in range(25):
-						name = await self.bot.fetch_user(users2[i][0])
-						ladder.add_field(name=language[140].format(i+1,name.name), value=language[141].format(users2[i][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
-					msg = await ctx.send(embed=ladder)
-					for i in range(25):
-						name = await self.bot.fetch_user(users2[i+25][0])
-						ladder2.add_field(name=language[140].format(i+26,name.name), value=language[141].format(users2[i+25][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
-					msg2 = await ctx.send(embed=ladder2)
-					for i in range(x-50):
-						name = await self.bot.fetch_user(users2[i+50][0])
-						ladder3.add_field(name=language[140].format(i+51,name.name), value=language[141].format(users2[i+50][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
-					msg3 = await ctx.send(embed=ladder3)
-				# Four Ladders
-				elif x <= 100:
-					await ctx.send(language[144])
-					for i in range(25):
-						name = await self.bot.fetch_user(users2[i][0])
-						ladder.add_field(name=language[140].format(i+1,name.name), value=language[141].format(users2[i][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
-					msg = await ctx.send(embed=ladder)
-					for i in range(25):
-						name = await self.bot.fetch_user(users2[i+25][0])
-						ladder2.add_field(name=language[140].format(i+26,name.name), value=language[141].format(users2[i+25][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
-					msg2 = await ctx.send(embed=ladder2)
-					for i in range(25):
-						name = await self.bot.fetch_user(users2[i+50][0])
-						ladder3.add_field(name=language[140].format(i+51,name.name), value=language[141].format(users2[i+50][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
-					msg3 = await ctx.send(embed=ladder3)
-					for i in range(x-75):
-						name = await self.bot.fetch_user(users2[i+75][0])
-						ladder4.add_field(name=language[140].format(i+76,name.name), value=language[141].format(users2[i+75][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
-					msg4 = await ctx.send(embed=ladder4)
-				# Catch if members is > 100. Four ladder maximum
-				else:
-					await ctx.send(language[145])
-					for i in range(25):
-						name = await self.bot.fetch_user(users2[i][0])
-						ladder.add_field(name=language[140].format(i+1,name.name), value=language[141].format(users2[i][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
-					msg = await ctx.send(embed=ladder)
-					for i in range(25):
-						name = await self.bot.fetch_user(users2[i+25][0])
-						ladder2.add_field(name=language[140].format(i+26,name.name), value=language[141].format(users2[i+25][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
-					msg2 = await ctx.send(embed=ladder2)
-					for i in range(25):
-						name = await self.bot.fetch_user(users2[i+50][0])
-						ladder3.add_field(name=language[140].format(i+51,name.name), value=language[141].format(users2[i+50][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
-					msg3 = await ctx.send(embed=ladder3)
-					for i in range(25):
-						name = await self.bot.fetch_user(users2[i+75][0])
-						ladder4.add_field(name=language[140].format(i+76,name.name), value=language[141].format(users2[i+75][1]['clans']['{0}'.format(clan)]['wins']), inline=True)
-					msg4 = await ctx.send(embed=ladder4)
-			except Exception as e:
-				await ctx.send(language[146].format('<@138752093308583936>'))
-				print("Clanboard command call failed.")
-				print(e)
-		except:
-			await ctx.send(language[147])
-	#@commands.command(pass_context = True)
-	#@commands.is_owner()
-	#async def ryo2(self,ctx,clan):
-	#	asyncio.create_task(self.ryo(ctx,clan))
+
 	@to_thread
 	def compareMathRyo(self,snapshot,clan,b):
 		pF = 0
