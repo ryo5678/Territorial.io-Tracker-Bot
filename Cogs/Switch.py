@@ -18,6 +18,18 @@ class Switch(commands.Cog):
 			await self.bot.unload_extension("Cogs.Help")
 			await ctx.send("Help is offline")
 	#-------------------------------------------------------------------------------
+	#----------------------------- Load/Unload Error Cog ----------------------------
+	#-------------------------------------------------------------------------------
+	@commands.command(pass_context = True)
+	@commands.is_owner()
+	async def errorSwitch(self,ctx):
+		try:
+			await self.bot.load_extension("Cogs.Error")
+			await ctx.send("Error is online")
+		except commands.ExtensionAlreadyLoaded:
+			await self.bot.unload_extension("Cogs.Error")
+			await ctx.send("Error is offline")
+	#-------------------------------------------------------------------------------
 	#----------------------------- Load/Unload Clans Cog ---------------------------
 	#-------------------------------------------------------------------------------
 	@commands.command(pass_context = True)
@@ -49,11 +61,11 @@ class Switch(commands.Cog):
 	async def winSwitch(self,ctx):
 		try:
 			await self.bot.load_extension("Cogs.Wins")
-			WinsCog = self.bot.get_cog("Wins")
-			WinsCog.bestPlayer.start()
-			WinsCog.topPlayer.start()
-			WinsCog.userCount.start()
-			WinsCog.userStatCheck.start()
+			WinsCog = self.bot.get_cog("Cogs.Wins")
+			#WinsCog.bestPlayer.start()
+			#WinsCog.topPlayer.start()
+			#WinsCog.userCount.start()
+			#WinsCog.userStatCheck.start()
 			await ctx.send("Wins is online")
 		except commands.ExtensionAlreadyLoaded:
 			await self.bot.unload_extension("Cogs.Wins")
