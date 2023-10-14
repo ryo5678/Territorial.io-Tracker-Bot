@@ -9,6 +9,7 @@ import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot as plt, ticker as ticker, dates as mdates
 from collections import defaultdict
+from urllib.request import Request, urlopen
 import functools
 import typing
 from discord.utils import get
@@ -47,8 +48,6 @@ class Clans(commands.Cog):
 			year = time.year
 			hour = time.hour
 			time = time.isoformat()
-			# List of months
-			months = ("January","February","March","April","May","June","July","August","September","October","November","December")
 			# Initialize empty message
 			scoreMessage = ""
 			
@@ -66,7 +65,7 @@ class Clans(commands.Cog):
 			
 			#plt.clf()
 			#TEMPORARY 
-			await ctx.send("This command is temporarily limited while it is being rebuilt.")
+			await ctx.send("This command is being remade, in the near future it will get buttons to switch between day/month/2months of data.")
 			#TEMPORARY
 			await ctx.send(language[3])
 			
@@ -391,25 +390,34 @@ class Clans(commands.Cog):
 		hour = time.hour
 		time = time.isoformat()
 		#TEMPORARY 
-		await ctx.send("This command is temporarily limited while it is being rebuilt.")
+		await ctx.send("This command will receive a month and 2month button in the near future.")
 		#TEMPORARY
 		plt.clf()
 		try:
-			# Convert clan name to database readable name
-			clan.strip("[]")
-			clan = clan.replace('.', 'period5')
-			clan = clan.replace('$', 'dollar5')
-			clan = clan.replace('#', 'htag5')
-			clan = clan.replace('[', 'lbracket5')
-			clan = clan.replace('/', 'slash5')
-			clan = clan.replace(']', 'rbracket5')
-			clan = clan.replace('?', 'qmark5')
+			# Download the webpage as text
+			req = Request(
+				url = "https://territorial.io/clans",
+				headers={'User-Agent': 'Mozilla/5.0'}
+			)
+			with urlopen(req) as webpage:
+				content = webpage.read().decode()
+			# print(content)
+			# Create db reference and convert string to list
 			clan = clan.upper()
-			ref2 = db.reference('/{0}/clans/{1}'.format(780723109128962070,clan))
-			clanData = ref2.get()
-			if (clanData == None):
+			clanCheck = f' {clan}, '
+			if (clanCheck not in content):
 				await ctx.send(language[156].format(clan))
 			else:
+				# Convert clan name to database readable name
+				clan.strip("[]")
+				clan = clan.replace('.', 'period5')
+				clan = clan.replace('$', 'dollar5')
+				clan = clan.replace('#', 'htag5')
+				clan = clan.replace('[', 'lbracket5')
+				clan = clan.replace('/', 'slash5')
+				clan = clan.replace(']', 'rbracket5')
+				clan = clan.replace('?', 'qmark5')
+
 				try:
 					stuff = await self.clanMathMonth(ctx,clan,year,month,day,hour)
 					if stuff is None:
@@ -445,17 +453,22 @@ class Clans(commands.Cog):
 					# Make and send embed
 					try:
 						# Convert database readable clan name back to normal
-						clan = clan.replace('PERIOD5', '.')
-						clan = clan.replace('DOLLAR5', '$')
-						clan = clan.replace('HTAG5', '#')
-						clan = clan.replace('LBRACKET5', '[')
-						clan = clan.replace('SLASH5', '/')
-						clan = clan.replace('RBRACKET5', ']')
-						clan = clan.replace('QMARK5', '?')
+						clan2 = clan
+						clan2 = clan2.replace('period5', '.')
+						clan2 = clan2.replace('dollar5', '$')
+						clan2 = clan2.replace('htag5', '#')
+						clan2 = clan2.replace('lbracket5', '[')
+						clan2 = clan2.replace('slash5', '/')
+						clan2 = clan2.replace('rbracket5', ']')
+						clan2 = clan2.replace('qmark5', '?')
 						# Get score
-						score = clanData['score']
+						content = content.splitlines()
+						for c in range(len(content)):
+							if clanCheck in content[c]:
+								score = content[c][-6:]
+								score.strip(" ")
 						# Make embed
-						plot = discord.Embed(title="{0}".format(clan), description=language[182].format(clan,score,x), color=0x03fcc6)
+						plot = discord.Embed(title="{0}".format(clan2), description=language[182].format(clan2,score,x), color=0x03fcc6)
 						plot.set_image(
 						   url="attachment://plot.png"
 						)
@@ -499,7 +512,7 @@ class Clans(commands.Cog):
 								# Make and send embed
 								try:
 									# Day
-									plot = discord.Embed(title="{0}".format(clan), description=language[162].format(clan,score,x), color=0x03fcc6)
+									plot = discord.Embed(title="{0}".format(clan2), description=language[162].format(clan2,score,x), color=0x03fcc6)
 									plot.set_image(
 									   url="attachment://plot.png"
 									)
@@ -518,6 +531,7 @@ class Clans(commands.Cog):
 						view.add_item(button1)
 						
 						await ctx.send(embed=plot, file=chart, view=view)
+						
 					except Exception as e:
 						print("t!clan error")
 						print(e)
@@ -721,75 +735,74 @@ class Clans(commands.Cog):
 	@commands.command(pass_context = True)
 	@commands.is_owner()
 	async def compareRyo(self,ctx,*,clans):
-		# Set language
-		language = english
-		# Set user
-		user = ctx.message.author.id
-		#plt.clf()
-		await ctx.send(language[3])
+		try:
+			# Set language
+			language = english
+			# Set user
+			user = ctx.message.author.id
+			# Set time
+			time = ctx.message.created_at
+			day = time.day
+			month = time.month
+			year = time.year
+			hour = time.hour
+			time = time.isoformat()
+			# Initialize empty message
+			scoreMessage = ""
+			
+			# Reset cooldown if user fails to use command correctly
+			clanList = clans.split()
+			if len(clanList) < 2 or clanList == None:
+				await ctx.send("Minimum clans is 2, please try again.")
+				# May need to change to self.reset, unsure for cogs
+				ctx.command.reset_cooldown(ctx)
+				return
+			if len(clanList) > 5:
+				await ctx.send("Maximum clans is 5, please try again.")
+				ctx.command.reset_cooldown(ctx)
+				return
+			
+			#plt.clf()
+			#TEMPORARY 
+			await ctx.send("This command is temporarily limited while it is being rebuilt.")
+			#TEMPORARY
+			await ctx.send(language[3])
+			
+			# Make plot for score vs time
+			fig1, ax1 = plt.subplots()
+			#print(ax1.lines)
+			# DAY
+			#if ax1.get_xlabel == language[157]:
+			# MONTH
+			if ax1.get_xlabel == language[178]:
+				print("Testing")
+				fig2, ax2 = plt.subplots()
+				figure = fig2
+				axe = ax2
+			else:
+				figure = fig1
+				axe = ax1
+			# DAY
+			#axe.set_title(language[159])
+			#axe.set_xlabel(language[157])
+			#axe.set_ylabel(language[158])
+			# MONTH
+			axe.set_title(language[180])
+			axe.set_xlabel(language[178])
+			axe.set_ylabel(language[179])
+			
+			#figure.title(language[169])
+			# MONTH
+			myFmt = mdates.DateFormatter('%m/%d')
+			# DAY
+			#myFmt = mdates.DateFormatter('%H:%M')
+			axe.xaxis.set_major_formatter(myFmt)
+			axe.xaxis.set_major_locator(ticker.LinearLocator(9))
+			axe.xaxis.set_minor_locator(ticker.LinearLocator(10))
+		except Exception as e:
+			print("Error in t!compare first part")
+			print(e)
 		
-		clanList = clans.split()
-		if len(clanList) < 2:
-			await ctx.send("Minimum clans is 2, please try again.")
-			# May need to change to self.reset, unsure for cogs
-			ctx.command.reset_cooldown(ctx)
-			return
-		if len(clanList) > 5:
-			await ctx.send("Maximum clans is 5, please try again.")
-			ctx.command.reset_cooldown(ctx)
-			return
-		# Set times to search back 6 months for $5 patrons
-		if(user == 746994669715587182 or user == 138752093308583936 or user == 681457461441593371):
-			timeDif = timedelta(720)
-		else:
-		# Set times to search back 3 weeks
-			timeDif = timedelta(21)
-		newTime = ctx.message.created_at
-		oldTime = newTime - timeDif
-		newTime = newTime + timedelta(1)
-		# Make plot for score vs time
-		fig1, ax1 = plt.subplots()
-		#print(ax1.lines)
-		if ax1.get_xlabel == language[157]:
-			print("Testing")
-			fig2, ax2 = plt.subplots()
-			figure = fig2
-			axe = ax2
-		else:
-			figure = fig1
-			axe = ax1
-		axe.set_title(language[169])
-		axe.set_xlabel(language[157])
-		axe.set_ylabel(language[158])
-		#figure.title(language[169])
-		myFmt = mdates.DateFormatter('%m/%d')
-		axe.xaxis.set_major_formatter(myFmt)
-		axe.xaxis.set_major_locator(ticker.LinearLocator(9))
-		axe.xaxis.set_minor_locator(ticker.LinearLocator(10))
-		# Loop through each clan name given
-		b = 1
-		ref9 = db.reference('gameData')
-		ref8 = db.reference('gameData2')
-		ref7 = db.reference('gameData3')
-		ref = db.reference('gameData4')
-		ref5 = db.reference('gameData5')
-		ref6 = db.reference('gameData6')
-		refGD7 = db.reference('gameData7')
-		snapshot = ref.order_by_child('Time').start_at(str(oldTime)).end_at(str(newTime)).get()
-		snapshot5 = ref5.order_by_child('Time').start_at(str(oldTime)).end_at(str(newTime)).get()
-		snapshot6 = ref6.order_by_child('Time').start_at(str(oldTime)).end_at(str(newTime)).get()
-		snapshot7 = ref7.order_by_child('Time').start_at(str(oldTime)).end_at(str(newTime)).get()
-		snapshot8 = ref8.order_by_child('Time').start_at(str(oldTime)).end_at(str(newTime)).get()
-		snapshot9 = ref9.order_by_child('Time').start_at(str(oldTime)).end_at(str(newTime)).get()
-		snapshotGD7 = refGD7.order_by_child('Time').start_at(str(oldTime)).end_at(str(newTime)).get()
-		snapshot = list(snapshot.items())
-		snapshot6 = list(snapshot6.items())
-		snapshot5 = list(snapshot5.items())
-		snapshot7 = list(snapshot7.items())
-		snapshot8 = list(snapshot8.items())
-		snapshot9 = list(snapshot9.items())
-		snapshotGD7 = list(snapshotGD7.items())
-		snapshot = snapshot + snapshot5 + snapshot6 + snapshot7 + snapshot8 + snapshot9 + snapshotGD7
 		for clan in clanList:
 			try:
 				clan.strip("[]")
@@ -808,25 +821,38 @@ class Clans(commands.Cog):
 					ctx.command.reset_cooldown(ctx)
 					return
 				else:
-					stuff = await self.compareMathRyo(snapshot,clan,b)
-					if b == 1:
-						pF = stuff[2]
-						mF = stuff[3]
-						gF = stuff[4]
-					if b == 2:
-						pS = stuff[2]
-						mS = stuff[3]
-						gS = stuff[4]
-					if b == 3:
-						pT = stuff[2]
-						mT = stuff[3]
-						gT = stuff[4]
-					if b == 4:
-						pR = stuff[2]
-						mR = stuff[3]
-						gR = stuff[4]
-					b += 1
-					axe.plot(stuff[0],stuff[1],label=clan)
+					# Get the data for a clan DAY
+					#stuff = await self.clanMathDay(ctx,clan,year,month,day,hour)
+					# Get the data for a clan MONTH
+					stuff = await self.clanMathMonth(ctx,clan,year,month,day,hour)
+					if stuff is None:
+						await ctx.send("Something went wrong, or not enough recent data exists")
+						ctx.command.reset_cooldown(ctx)
+						return
+					# Organize returned data
+					x = stuff[2]
+					times = sorted(stuff[0])
+					scores = list()
+					for a in times:
+						scores.append(stuff[1][stuff[0].index(a)])
+					
+					# Convert database readable clan name back to normal
+					clan = clan.replace('PERIOD5', '.')
+					clan = clan.replace('DOLLAR5', '$')
+					clan = clan.replace('HTAG5', '#')
+					clan = clan.replace('LBRACKET5', '[')
+					clan = clan.replace('SLASH5', '/')
+					clan = clan.replace('RBRACKET5', ']')
+					clan = clan.replace('QMARK5', '?')
+					# Set current clan score
+					score = clanData['score']
+					# Plot clan data
+					axe.plot(times,scores,label=clan)
+					# Update reply message DAY
+					#scoreMessage += f"The clan, {clan}, has a last known score of {score} and {x} wins today. \n"
+					# Update reply message MONTH
+					scoreMessage += f"The clan, {clan}, has a last known score of {score} and {x} wins this past month. \n"
+		
 			except Exception as e:
 				print(e)
 				await ctx.send(language[153])
@@ -839,28 +865,25 @@ class Clans(commands.Cog):
 			figure.savefig(data_stream, format='png', bbox_inches="tight", dpi = 80)
 			data_stream.seek(0)
 			chart = discord.File(data_stream,filename="plot.png")
-			# Make and send embed
-			plot = discord.Embed(title="{0}".format(clans), description=language[163], color=0x03fcc6)
+			# Make and send embed DAY
+			#plot = discord.Embed(title="{0}".format(clans), description=language[160], color=0x03fcc6)
+			# Make and send embed MONTH
+			plot = discord.Embed(title="{0}".format(clans), description=scoreMessage, color=0x03fcc6)
 			plot.set_image(
 			   url="attachment://plot.png"
 			)
-			await ctx.send(embed=plot, file=chart)
-			try:
-				await ctx.send(language[4].format(clanList[0],pF,mF,gF))
-				await ctx.send(language[4].format(clanList[1],pS,mS,gS))
-				if b == 4:
-					await ctx.send(language[4].format(clanList[2],pT,mT,gT))
-				if b >= 5:
-					await ctx.send(language[4].format(clanList[3],pR,mR,gR))
-			except Exception as e:
-				print("t!compare")
-				print(e)
-				print(ctx.message.guild.name)
-				print(ctx.message.guild.id)
+			view = discord.ui.View(timeout = 180)
+			button1 = discord.ui.Button(label="Day")
+			async def button1_callback(button_inter: discord.Interaction):
+				do = "nothing"
+			button1.callback = button1_callback
+			view.add_item(button1)
+			await ctx.send(embed=plot, file=chart, view=view)
 			plt.close(figure)
 		except Exception as e:
-				print(e)
-				await ctx.send(language[153])
+			print("Error in t!compare final part")
+			print(e)
+			await ctx.send(language[153])
 	@to_thread
 	def clanMathDayTest(self,ctx,clan,year,month,day,hour):
 		try:
@@ -1054,7 +1077,7 @@ class Clans(commands.Cog):
 			print(e)
 			return None
 	@commands.command(pass_context = True)
-	@commands.cooldown(1, 60, commands.BucketType.user)
+	@commands.is_owner()
 	async def clanRyo(self,ctx,clan):
 		# Set language
 		language = english
