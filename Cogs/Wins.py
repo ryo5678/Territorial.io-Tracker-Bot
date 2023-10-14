@@ -433,16 +433,6 @@ class Wins(commands.Cog):
 	async def win(self,ctx):
 		# Set language
 		language = english
-		# Get image channel list
-		#ref = db.reference('/imageChannels')
-		#info = ref.get()
-		#channels = list(info.items())
-		#channelList = []
-		# Check if command called in tracking channel
-		#for i in range(len(channels)):
-		#	channelList.append(int(channels[i][1]['channelID']))
-		#if int(ctx.channel.id) not in channelList:
-		#	return await ctx.send("Command used outside of a win tracking channel. Please get an administrator to specify a channel with t!imagetrack")
 		# Remove Try/Except eventually, using temporarily to catch bugs
 		try:
 			# Set message object
@@ -479,7 +469,8 @@ class Wins(commands.Cog):
 			# Check privacy opt in/out
 			opt = db.reference('/users/{0}/opt'.format(user))
 			if (opt.get() == True):
-				return await ctx.send(language[106])
+				await ctx.send(language[106])
+				return
 			# Check if attachment picture is given
 			if len(message.attachments) > 0:
 				# Set attachments list to handle multiple if needed
@@ -491,8 +482,8 @@ class Wins(commands.Cog):
 					if attachment.filename.endswith(".jpg") or attachment.filename.endswith(".jpeg") or attachment.filename.endswith(".png") or attachment.filename.endswith(".webp") or attachment.filename.endswith(".PNG") or attachment.filename.endswith(".JPG") or attachment.filename.endswith(".JPEG"):
 						#image = attachment.url
 						# Downlaod image and create object by path
-						await attachment.save(attachment.filename)
-						image_path = r"{0}".format(attachment.filename)
+						await attachment.save(f"WinPictures/{attachment.filename}")
+						image_path = f"WinPictures/{attachment.filename}"
 						# Read image and begin conversion
 						img = cv2.imread(image_path)
 						kernel = np.ones((1, 1), np.uint8)
@@ -511,14 +502,16 @@ class Wins(commands.Cog):
 						clan = infoList[index][1]
 						# Check if clan is not set
 						if clan == "none":
-							os.remove(attachment.filename)
-							return await ctx.send(language[108])
+							os.remove(f"WinPictures/{attachment.filename}")
+							await ctx.send(language[108])
+							return
 						pRef = db.reference('/users/{0}/clans/{1}/previous'.format(user,clan))
 						if pRef.get() != None:
 							if text[:15] == pRef.get():
 								print("{0} tried to cheat".format(user))
-								os.remove(attachment.filename)
-								return await ctx.send(language[109].format(user))
+								os.remove(f"WinPictures/{attachment.filename}")
+								await ctx.send(language[109].format(user))
+								return 
 						# Convert database version to game version
 						clan = clan.replace('PERIOD5', '.')
 						clan = clan.replace('DOLLAR5', '$')
@@ -554,15 +547,17 @@ class Wins(commands.Cog):
 								points2 = points2 * 2
 								# Cheating check
 								if(points2 > 1100):
-									os.remove(attachment.filename)
-									return await ctx.send(language[176].format(user))
+									os.remove(f"WinPictures/{attachment.filename}")
+									await ctx.send(language[176].format(user))
+									return
 							else:
 								points2 = re.sub('[^0-9]+', '', points2)
 								points2 = int(points2)
 								# Cheating check
 								if(points2 > 600):
-									os.remove(attachment.filename)
-									return await ctx.send(language[176].format(user))
+									os.remove(f"WinPictures/{attachment.filename}")
+									await ctx.send(language[176].format(user))
+									return
 						except Exception as e:
 							print("Points error")
 							print(e)
@@ -583,7 +578,7 @@ class Wins(commands.Cog):
 								'previous': text[:30],
 								'points': points
 							})
-							os.remove(attachment.filename)
+							os.remove(f"WinPictures/{attachment.filename}")
 							# Send win confirmation
 							await ctx.send(language[110].format(user,wins))
 							# Interact with ELITE bot
@@ -620,14 +615,16 @@ class Wins(commands.Cog):
 										points2 = int(points2)
 										points2 = points2 * 2
 										if(points2 > 1100):
-											os.remove(attachment.filename)
-											return await ctx.send(language[176].format(user))
+											os.remove(f"WinPictures/{attachment.filename}")
+											await ctx.send(language[176].format(user))
+											return
 									else:
 										points2 = re.sub('[^0-9]+', '', points2)
 										points2 = int(points2)
 										if(points2 > 600):
-											os.remove(attachment.filename)
-											return await ctx.send(language[176].format(user))
+											os.remove(f"WinPictures/{attachment.filename}")
+											await ctx.send(language[176].format(user))
+											return
 								except Exception as e:
 									print("Points error")
 									print(e)
@@ -647,7 +644,7 @@ class Wins(commands.Cog):
 										'previous': text[:30],
 										'points': points
 									})
-									os.remove(attachment.filename)
+									os.remove(f"WinPictures/{attachment.filename}")
 									await ctx.send(language[110].format(user,wins))
 									if(message.guild.id == 900982253679702036) and (clan.lower() == "elite"):
 										try:
